@@ -32,3 +32,20 @@ jobs:
           set -x
           gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/probe-$GITHUB_RUN_ID-c" -f sha="$GITHUB_SHA" || true
           gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/probe-$GITHUB_RUN_ID-c" || true
+  probe-env:
+    runs-on: ubuntu-24.04
+    environment: iso-release
+    permissions:
+      contents: write
+    steps:
+      - name: gh release create no ambiente iso-release (rascunho)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -x
+          echo "nota" > notes.md; echo teste > a.txt
+          tag="probe-$GITHUB_RUN_ID-env"
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease \
+            --title "Big WindowMaker Alpha — teste" --notes-file notes.md -- a.txt || true
+          gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+
