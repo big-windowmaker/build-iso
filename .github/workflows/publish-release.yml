@@ -69,14 +69,14 @@ jobs:
       - name: Publicar
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ steps.run.outputs.sha }}
           NUMBER: ${{ steps.run.outputs.number }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           command -v 7z >/dev/null || { sudo apt-get update; sudo apt-get install --yes p7zip-full; }
           iso=$(find /mnt/release -maxdepth 1 -name '*.iso' -printf '%f\n')
           [[ "$iso" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]] || { echo "::error::ISO não encontrada"; exit 1; }
-          url=$(bash scripts/publish-release.sh /mnt/release "$iso" "${iso%.iso}-r$NUMBER" "$SHA")
+          url=$(bash scripts/publish-release.sh /mnt/release "$iso" "${iso%.iso}-r$NUMBER" "$DEFAULT_BRANCH")
           echo "Pre-release publicada: $url" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Guardar a resposta da API em caso de falha

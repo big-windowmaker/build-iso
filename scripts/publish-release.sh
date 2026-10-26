@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # publish-release.sh - publica como pre-release do GitHub uma ISO já aprovada.
 #
-# Uso: publish-release.sh <dir-com-a-iso> <nome.iso> <tag> <commit-alvo>
+# Uso: publish-release.sh <dir-com-a-iso> <nome.iso> <tag> <branch>
 #
 # <dir-com-a-iso> tem a ISO e os arquivos que o job build gera ao lado dela
 # (.sha256, .pkgs, .bigwm-local.manifest, .bigwm-local.sources.tsv,
@@ -9,17 +9,23 @@
 # partes 7z de 2000 MB (limite de 2 GiB por arquivo de release), cria a
 # release como RASCUNHO, envia os arquivos e só então a publica.
 #
+# A tag aponta para a ponta do <branch> (main) no momento da publicação, não
+# para o commit que gerou a ISO: criar uma tag num commit cujos workflows
+# diferem dos atuais exige a permissão "workflows", que o GITHUB_TOKEN nunca
+# tem (HTTP 403). O commit do build continua registrado no .build-info, que
+# vai nas notas da release.
+#
 # Variáveis: GH_TOKEN (contents: write), GITHUB_REPOSITORY.
 # Em caso de falha da API, a resposta completa fica em gh-api-debug.txt.
 set -euo pipefail
 
 die() { printf 'publish-release.sh: erro: %s\n' "$*" >&2; exit 1; }
 
-(($# == 4)) || die "uso: publish-release.sh <dir> <nome.iso> <tag> <commit-alvo>"
+(($# == 4)) || die "uso: publish-release.sh <dir> <nome.iso> <tag> <branch>"
 dir=$1 iso=$2 tag=$3 target=$4
 [[ "$iso" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]] || die "nome de ISO inválido: $iso"
 [[ "$tag" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || die "tag inválida: $tag"
-[[ "$target" =~ ^[0-9a-f]{40}$ ]] || die "commit-alvo deve ser o SHA completo: $target"
+[[ "$target" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$ && "$target" != *..* ]] || die "branch inválido: $target"
 [[ -n "${GITHUB_REPOSITORY:-}" ]] || die "GITHUB_REPOSITORY não definido"
 
 cd "$dir"

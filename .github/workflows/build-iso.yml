@@ -617,10 +617,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISO: ${{ needs.build.outputs.iso }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           command -v 7z >/dev/null || { sudo apt-get update; sudo apt-get install --yes p7zip-full; }
-          url=$(bash ci/scripts/publish-release.sh /mnt/release "$ISO" "${ISO%.iso}-r${GITHUB_RUN_NUMBER}" "$GITHUB_SHA")
+          url=$(bash ci/scripts/publish-release.sh /mnt/release "$ISO" "${ISO%.iso}-r${GITHUB_RUN_NUMBER}" "$DEFAULT_BRANCH")
           echo "Pre-release publicada: $url" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Guardar a resposta da API em caso de falha
