@@ -22,8 +22,8 @@ on:
       branch:
         description: "Branch BigCommunity/BigLinux dos pacotes"
         type: choice
-        default: testing
-        options: [testing, stable]
+        default: stable
+        options: [stable, testing]
       kernel:
         description: "Kernel (seletor do motor da BigLinux)"
         type: choice
@@ -42,13 +42,13 @@ on:
         type: boolean
         default: false
   schedule:
-    # Semanal (segunda-feira, 05:17 UTC): ISO testing com os valores padrão.
+    # Semanal (segunda-feira, 05:17 UTC): ISO com os valores padrão (stable).
     - cron: "17 5 * * 1"
 
 permissions: {}
 
 concurrency:
-  group: build-iso-${{ github.ref }}-${{ inputs.branch || 'testing' }}
+  group: build-iso-${{ github.ref }}-${{ inputs.branch || 'stable' }}
   cancel-in-progress: false
 
 env:
@@ -75,7 +75,7 @@ env:
   EXPECTED_PACKAGES: >-
     big-wm-session big-wm-wayland big-wm-themes windowmaker wlmaker
     wmcpuload wmbattery wmusic wmudmount wmshutdown wmmoonclock wmnet
-    biglinux-livecd
+    wmclock wmmemload wmsystemtray biglinux-livecd
   # Imagem usada só para rodar repo-add sem rede (manjarolinux/base, a mesma
   # de big-windowmaker/packages). O Dependabot não atualiza digests usados
   # em `run:`; atualizar à mão.
@@ -104,7 +104,7 @@ jobs:
         run: |
           set -euo pipefail
           # No agendamento as entradas chegam vazias: valores padrão.
-          branch=${IN_BRANCH:-testing}
+          branch=${IN_BRANCH:-stable}
           kernel=${IN_KERNEL:-lts}
           ref=${IN_PROFILES_REF:-wmaker-edition}
           require=${IN_REQUIRE_PATCH:-true}
@@ -235,9 +235,55 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
+  resolve:
+    name: Resolução de pacotes (simulação pacman)
+    needs: [lint, local-repo]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout deste repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ci
+          persist-credentials: false
+
+      - name: Checkout dos perfis (mesmo commit do lint)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.PROFILES_REPO }}
+          ref: ${{ needs.lint.outputs.profiles_sha }}
+          path: profiles
+          persist-credentials: false
+
+      - name: Baixar o [bigwm-local]
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bigwm-local-${{ github.run_id }}
+          path: ${{ runner.temp }}/bigwm-local
+
+      - name: Simular a instalação das listas da edição
+        env:
+          BRANCH: ${{ needs.lint.outputs.branch }}
+        run: |
+          set -euo pipefail
+          edition="$GITHUB_WORKSPACE/profiles/$DISTRONAME/$EDITION"
+          # cp -L: Packages-Root/Live são links para shared/ no checkout.
+          mkdir -p "$RUNNER_TEMP/edition"
+          cp -L "$edition"/Packages-{Root,Desktop,Live} "$RUNNER_TEMP/edition/"
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/ci/scripts:/scripts:ro" \
+            -v "$RUNNER_TEMP/edition:/edition:ro" \
+            -v "$RUNNER_TEMP/bigwm-local:/srv/bigwm-local:ro" \
+            "$MANJARO_BASE_IMAGE" \
+            bash /scripts/resolve-edition.sh /edition /srv/bigwm-local "$BRANCH" \
+            | tee "$RUNNER_TEMP/resolve.txt"
+          { echo "### Resolução de pacotes ($BRANCH)"; echo '```'; cat "$RUNNER_TEMP/resolve.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
   build:
     name: ISO ${{ needs.lint.outputs.branch }} ${{ needs.lint.outputs.kernel }}
-    needs: [lint, local-repo]
+    needs: [lint, local-repo, resolve]
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     permissions:
