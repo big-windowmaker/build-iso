@@ -32,7 +32,8 @@ semanal (segunda-feira, 05:17 UTC, ISO *testing* com os valores padrão).
 | `local-repo` | `contents: read`, `actions: read` | Baixa os pacotes dos artefatos de CI (`scripts/fetch-package-artifacts.sh`), monta o repositório `[bigwm-local]` com `repo-add` num contêiner Manjaro **sem rede** (`scripts/make-local-repo.sh`) e o publica como artefato (retenção de 3 dias). |
 | `build` | `contents: read`; contêiner `--privileged` | Roda `build-iso/build-iso.sh` de `biglinux/iso-profiles` **fixado por commit** (`ENGINE_SHA`) no **mesmo contêiner, fixado pelo mesmo digest**, que o workflow *Build ISO* da BigLinux usa, com `PROFILES_ROOT` apontando para o checkout dos perfis, `DISTRONAME=bigcommunity`, `EDITION=wmaker`. Injeta `[bigwm-local]` logo antes do `buildiso` (`scripts/run-engine.sh`). Gera `.iso`, `.iso.sha256`, `.iso.pkgs` (lista de pacotes), o manifesto do repositório local e `.build-info` (commits do motor e dos perfis); confere que a ISO recebeu as versões do repositório local (`scripts/check-iso-packages.sh`). Artefato com retenção de 3 dias. |
 | `smoke-test` | `contents: read` | Boot da ISO em QEMU/KVM, BIOS e UEFI (OVMF), até a sessão live, e prova de que a sessão Window Maker é utilizável (`scripts/smoke-test.sh`; critérios abaixo). Logs e capturas de tela ficam como artefato por 7 dias. |
-| `release` | `contents: write`, environment `iso-release` | Só em `workflow_dispatch` com `publish: true` e depois do smoke test aprovado nos dois firmwares: confere o sha256, gera `SHA256SUMS`, divide a ISO em partes 7z se passar de 2 GiB (limite por asset) e cria uma **pre-release** com `gh release create`. |
+| `install-test` | `contents: read` | Instalação real pelo Calamares (BIOS e UEFI): "Apagar disco", usuário, instalação, reinício pelo disco instalado, login no LightDM, sessão `big-wm` e saúde do sistema, com o harness openQA da BigLinux fixado por SHA + patches e overlay deste repositório (`scripts/install-test.sh`, [`openqa/README.md`](openqa/README.md)). Resultados, logs do Calamares, capturas e vídeo ficam como artefato `install-<firmware>-<run>` por 7 dias. |
+| `release` | `contents: write`, environment `iso-release` | Só em `workflow_dispatch` com `publish: true` e depois do smoke test e do teste de instalação aprovados nos dois firmwares: confere o sha256, gera `SHA256SUMS`, divide a ISO em partes 7z se passar de 2 GiB (limite por asset) e cria uma **pre-release** com `gh release create`. |
 
 Entradas do `workflow_dispatch`:
 
@@ -124,8 +125,8 @@ versões do repositório local. Os pacotes de `Packages-Live` (o
 
 ## Smoke test: o que é verificado
 
-Não é o gate openQA da BigLinux (que instala o sistema e abre aplicativos
-pela árvore de acessibilidade). É um teste curto e autocontido, rodado para
+Não instala nada (isso é o `install-test`, abaixo). É um teste curto e
+autocontido, rodado para
 `bios` (SeaBIOS) e `uefi` (OVMF sem Secure Boot), com KVM, 4 GiB de RAM e
 `-no-reboot`:
 
@@ -181,6 +182,24 @@ scripts/smoke-test.sh --iso bigcommunity_TESTING_wmaker_*.iso --firmware bios --
 scripts/smoke-test.sh --iso bigcommunity_TESTING_wmaker_*.iso --firmware uefi --out /tmp/smoke-uefi \
   --ovmf-code /usr/share/edk2/x64/OVMF_CODE.4m.fd --ovmf-vars /usr/share/edk2/x64/OVMF_VARS.4m.fd
 ```
+
+## Teste de instalação
+
+`scripts/install-test.sh` instala a ISO pelo Calamares numa VM (particionamento
+automático, usuário com senha aleatória), reinicia pelo disco instalado, faz
+login no LightDM e confere a sessão `big-wm`, o Dock e a saúde do sistema. Usa
+o harness openQA da BigLinux (`biglinux/iso-profiles`, fixado por commit em
+`openqa/upstream.env`) com patches mínimos e um overlay deste repositório;
+detalhes, lista de módulos e limites em [`openqa/README.md`](openqa/README.md).
+
+```bash
+scripts/install-test.sh --iso bigcommunity_wmaker_*.iso --plan bios --out /var/tmp/install-bios
+scripts/install-test.sh --iso bigcommunity_wmaker_*.iso --plan uefi --out /var/tmp/install-uefi \
+  --ovmf-code /usr/share/edk2/x64/OVMF_CODE.4m.fd --ovmf-vars /usr/share/edk2/x64/OVMF_VARS.4m.fd
+```
+
+Precisa de `docker`, `/dev/kvm`, `git`, `patch`, `ruby` e `python3`; sem root.
+O veredito fica em `<out>/artifacts/report/RESULTADO.md`.
 
 ## Como executar
 
@@ -260,8 +279,11 @@ produto, em vez da injeção feita aqui.
   atualizar `ENGINE_SHA`, copie o digest do `build-iso.yml` da BigLinux nesse
   commit e revise `build-iso/build-iso.sh` (o `run-engine.sh` falha se a ordem
   das etapas mudar).
-- **Sem gate de instalação.** O smoke test não instala o sistema nem testa o
-  Calamares. A edição do GRUB por teclas depende do layout do `kernels.cfg`
+- **Teste de instalação.** Depende do harness openQA da BigLinux (fixado por
+  SHA, patches aplicados sem fuzz) e de uma imagem do `isotovideo` fixada por
+  digest no registry do openSUSE, que guarda poucas versões; ver *Limites* em
+  [`openqa/README.md`](openqa/README.md).
+- **Edição do GRUB no smoke test.** A edição do GRUB por teclas depende do layout do `kernels.cfg`
   do perfil (`boot_<distro> ... ${kopts}`); se o perfil mudar isso, o teste
   falha em "boot" e as capturas `01-grub-menu`/`02-grub-editada` mostram o
   motivo.
