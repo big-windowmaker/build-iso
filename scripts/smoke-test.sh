@@ -38,6 +38,23 @@
 #   8. A captura de tela final tem conteúdo gráfico (>= SMOKE_MIN_COLORS cores
 #      distintas; uma tela preta ou um console de texto tem poucas).
 #
+# Sessão utilizável (com --usability true, o padrão; só quando o critério 7
+# passou). Comandos rodam como o usuário live, com o DISPLAY/XAUTHORITY/D-Bus
+# do próprio processo wmaker, e as janelas são lidas do servidor X pela EWMH
+# (scripts/smoke-x11-probe.py, enviado à VM pela serial):
+#   9. ewmh: o gerenciador de janelas publica _NET_SUPPORTING_WM_CHECK com o
+#      nome "Window Maker" (está gerenciando o display :0).
+#  10. dock: os dockapps do WMState padrão estão rodando (wmclock,
+#      wmsystemtray, wmix, wmcpuload, wmmemload, wmnet).
+#  11. menu: F12 (RootMenuKey) abre o menu raiz (a tela muda; captura).
+#  12. terminal: xdg-terminal-exec abre uma janela nova gerenciada pelo WM,
+#      e ela aparece na tela (terminal-visivel: a captura muda pelo menos
+#      SMOKE_MIN_WINDOW_BYTES bytes).
+#  13. calamares: calamares-biglinux_polkit (o atalho "Instalar" da live)
+#      abre uma janela nova (o lançador GTK do instalador), que aparece na
+#      tela (instalador-visivel).
+# As capturas 30-* a 33-* servem também para o README.
+#
 # Informativo (não reprova): unidades systemd com falha, presença do assistente.
 #
 # Saída em --out: serial0.log (kernel+journal), serial1.log (sondas),
@@ -52,9 +69,13 @@ usage() {
 Uso: smoke-test.sh --iso ARQUIVO.iso --firmware bios|uefi --out DIR
                    [--ovmf-code OVMF_CODE.fd --ovmf-vars OVMF_VARS.fd]
                    [--require-livecd-patch true|false] [--live-user NOME]
+                   [--usability true|false]
+
+Opções: --usability true|false (padrão true) testa se a sessão é utilizável.
 
 Variáveis opcionais: SMOKE_BOOT_TIMEOUT (s, padrão 900), SMOKE_GRUB_WAIT
 (s, padrão 45), SMOKE_MEMORY_MB (4096), SMOKE_CPUS (2), SMOKE_MIN_COLORS (64),
+SMOKE_MIN_WINDOW_BYTES (300000),
 SMOKE_MONITOR_PORT (45454), SMOKE_SERIAL_PORT (45455), SMOKE_ALLOW_TCG (0).
 EOF
 }
@@ -62,6 +83,7 @@ EOF
 iso="" firmware="" out="" ovmf_code="" ovmf_vars=""
 require_patch=true
 live_user=community
+usability=true
 
 while (($#)); do
     case "$1" in
@@ -72,6 +94,7 @@ while (($#)); do
         --ovmf-vars) ovmf_vars=${2:?}; shift 2 ;;
         --require-livecd-patch) require_patch=${2:?}; shift 2 ;;
         --live-user) live_user=${2:?}; shift 2 ;;
+        --usability) usability=${2:?}; shift 2 ;;
         -h | --help) usage; exit 0 ;;
         *) usage >&2; exit 2 ;;
     esac
@@ -82,6 +105,7 @@ grub_wait=${SMOKE_GRUB_WAIT:-45}
 memory=${SMOKE_MEMORY_MB:-4096}
 cpus=${SMOKE_CPUS:-2}
 min_colors=${SMOKE_MIN_COLORS:-64}
+min_window_bytes=${SMOKE_MIN_WINDOW_BYTES:-300000}
 mon_port=${SMOKE_MONITOR_PORT:-45454}
 ser_port=${SMOKE_SERIAL_PORT:-45455}
 
@@ -92,8 +116,11 @@ die() { printf 'smoke-test.sh: erro: %s\n' "$*" >&2; exit 2; }
 [[ -n "$out" ]] || die "--out é obrigatório"
 case "$firmware" in bios | uefi) ;; *) die "--firmware deve ser bios ou uefi" ;; esac
 case "$require_patch" in true | false) ;; *) die "--require-livecd-patch deve ser true ou false" ;; esac
+case "$usability" in true | false) ;; *) die "--usability deve ser true ou false" ;; esac
+x11_probe="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/smoke-x11-probe.py"
+[[ -f "$x11_probe" ]] || die "sonda X11 não encontrada: $x11_probe"
 [[ "$live_user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || die "usuário live inválido: $live_user"
-for n in "$boot_timeout" "$grub_wait" "$memory" "$cpus" "$min_colors" "$mon_port" "$ser_port"; do
+for n in "$boot_timeout" "$grub_wait" "$memory" "$cpus" "$min_colors" "$min_window_bytes" "$mon_port" "$ser_port"; do
     [[ "$n" =~ ^[0-9]+$ ]] || die "valor numérico inválido: $n"
 done
 command -v qemu-system-x86_64 >/dev/null || die "qemu-system-x86_64 não instalado"
@@ -422,6 +449,180 @@ if ((colors >= min_colors)); then
     record PASS tela "captura final com $colors cores distintas"
 else
     record FAIL tela "captura final com só $colors cores distintas (mínimo $min_colors): tela preta ou só texto"
+fi
+
+#--- 4. Sessão utilizável -------------------------------------------------------
+
+# Script executado pelo root do debug shell; age como o usuário live com o
+# ambiente do próprio wmaker (DISPLAY, XAUTHORITY, barramento D-Bus).
+write_guest_helper() {
+    cat <<'GUEST' | sed "s/LIVEUSER/$live_user/g"
+#!/bin/bash
+u=LIVEUSER
+wm_pid=$(pgrep -u "$u" -x wmaker | head -n1)
+[ -n "$wm_pid" ] || { echo "BWM""_U_ERR=sem-wmaker"; exit 1; }
+as_user() {
+    local vars=() line
+    while IFS= read -r -d '' line; do
+        case "$line" in
+            DISPLAY=* | XAUTHORITY=* | DBUS_SESSION_BUS_ADDRESS=* | XDG_RUNTIME_DIR=* | \
+            HOME=* | USER=* | LOGNAME=* | SHELL=* | PATH=* | LANG=* | LANGUAGE=* | LC_*=* | \
+            XDG_CURRENT_DESKTOP=* | XDG_SESSION_TYPE=* | XDG_SESSION_DESKTOP=* | \
+            DESKTOP_SESSION=* | GSK_RENDERER=* | QT_QPA_PLATFORMTHEME=* | \
+            QT_STYLE_OVERRIDE=* | TERMINAL=*) vars+=("$line") ;;
+        esac
+    done <"/proc/$wm_pid/environ"
+    runuser -u "$u" -- env -i "${vars[@]}" "$@"
+}
+clients() {
+    as_user python3 /tmp/bwm-x11-probe.py S | sed -n 's/^BWM_X11_S_CLIENTS=//p' | tr ',' '\n' | grep -v '^-$'
+}
+case "$1" in
+    x11) as_user python3 /tmp/bwm-x11-probe.py "$2" ;;
+    dock)
+        missing=
+        for app in wmclock wmsystemtray wmix wmcpuload wmmemload wmnet; do
+            pgrep -u "$u" -x "$app" >/dev/null || missing="$missing,$app"
+        done
+        missing=${missing#,}
+        echo "BWM""_U_DOCK_MISSING=${missing:-nenhum}"
+        ;;
+    snapshot) clients >"/tmp/bwm-clients-$2" ;;
+    run)
+        name=$2
+        shift 2
+        as_user setsid "$@" </dev/null >"/tmp/bwm-run-$name.log" 2>&1 &
+        echo "BWM""_U_RUN_$name=$!"
+        ;;
+    wait-new)
+        name=$2 base=$3 t=$4 new=
+        while ((t-- > 0)); do
+            new=$(clients | grep -v -x -F -f "/tmp/bwm-clients-$base" | paste -sd, -)
+            [ -n "$new" ] && break
+            sleep 1
+        done
+        echo "BWM""_U_NEW_$name=${new:-nenhuma}"
+        ;;
+esac
+GUEST
+}
+
+# Envia um arquivo à VM pela serial 1 em base64 (sem aspas nem caracteres
+# que o shell interativo interprete).
+send_file() {
+    local src=$1 dst=$2 b64 i
+    b64=$(base64 -w0 <"$src")
+    guest "rm -f $dst.b64"
+    for ((i = 0; i < ${#b64}; i += 512)); do
+        guest "printf %s '${b64:i:512}' >>$dst.b64"
+        sleep 0.05
+    done
+    guest "base64 -d $dst.b64 >$dst && rm -f $dst.b64"
+}
+
+# Espera um marcador aparecer (os nomes são únicos por etapa).
+wait_marker() {
+    local name=$1 end=$((SECONDS + $2))
+    while [[ -z "$(marker "$name")" ]] && ((SECONDS < end)); do
+        alive
+        sleep 2
+    done
+    marker "$name"
+}
+
+# Bytes diferentes entre duas capturas PPM.
+ppm_diff() {
+    { cmp -l -- "$1" "$2" 2>/dev/null || true; } | wc -l
+}
+
+# Uma janela nova no EWMH não basta: ela precisa aparecer na tela. Compara a
+# captura de antes com a de depois; um ícone de aplicativo no rodapé muda
+# ~12 mil bytes, uma janela de 400x300 já muda mais de 300 mil.
+invisible=0
+assert_visible() { # critério descrição antes depois
+    local changed
+    changed=$(ppm_diff "$out/$3.ppm" "$out/$4.ppm")
+    if ((changed >= min_window_bytes)); then
+        record PASS "$1" "$2 aparece na tela ($changed bytes mudaram)"
+    else
+        record FAIL "$1" "$2 está mapeado mas não aparece na tela (só $changed bytes mudaram; capturas $3/$4)"
+        invisible=$((invisible + 1))
+    fi
+}
+
+if [[ "$usability" == true && "$wmaker" == yes ]]; then
+    log "Sessão utilizável: Dock, EWMH, menu raiz, terminal e instalador"
+    write_guest_helper >"$out/bwm-usability.sh"
+    send_file "$x11_probe" /tmp/bwm-x11-probe.py
+    send_file "$out/bwm-usability.sh" /tmp/bwm-u.sh
+
+    guest 'bash /tmp/bwm-u.sh dock'
+    dock_missing=$(wait_marker U_DOCK_MISSING 30)
+    guest 'bash /tmp/bwm-u.sh x11 DESK'
+    wm_name=$(wait_marker X11_DESK_WM 60)
+    sleep 2
+    screendump 30-area-de-trabalho
+
+    if [[ "$wm_name" =~ [Ww]indow.?[Mm]aker ]]; then
+        record PASS ewmh "o display :0 é gerenciado por \"$wm_name\""
+    else
+        record FAIL ewmh "_NET_SUPPORTING_WM_CHECK: \"${wm_name:-sem resposta}\" (esperado Window Maker)"
+    fi
+    if [[ "$dock_missing" == nenhum ]]; then
+        record PASS dock "dockapps em execução: wmclock wmsystemtray wmix wmcpuload wmmemload wmnet"
+    else
+        record FAIL dock "dockapps ausentes: ${dock_missing:-sem resposta}"
+    fi
+
+    # Menu raiz do Window Maker (RootMenuKey padrão: F12).
+    sendkey f12
+    sleep 3
+    screendump 31-menu-raiz
+    changed=$(ppm_diff "$out/30-area-de-trabalho.ppm" "$out/31-menu-raiz.ppm")
+    sendkey esc
+    sleep 1
+    if ((changed > 1000)); then
+        record PASS menu "F12 abriu o menu raiz ($changed bytes da tela mudaram)"
+    else
+        record FAIL menu "F12 não mudou a tela ($changed bytes): o Window Maker não atendeu ao atalho"
+    fi
+
+    screendump 32a-antes-do-terminal
+    guest 'bash /tmp/bwm-u.sh snapshot t0'
+    guest 'bash /tmp/bwm-u.sh run terminal xdg-terminal-exec'
+    guest 'bash /tmp/bwm-u.sh wait-new terminal t0 60'
+    new_terminal=$(wait_marker U_NEW_terminal 120)
+    sleep 3
+    screendump 32-terminal
+    if [[ -n "$new_terminal" && "$new_terminal" != nenhuma ]]; then
+        record PASS terminal "xdg-terminal-exec abriu janela: $new_terminal"
+    else
+        record FAIL terminal "xdg-terminal-exec não abriu janela em 60s (log em /tmp/bwm-run-terminal.log na VM)"
+    fi
+    assert_visible terminal-visivel "o terminal" 32a-antes-do-terminal 32-terminal
+
+    screendump 33a-antes-do-instalador
+    guest 'bash /tmp/bwm-u.sh snapshot t1'
+    guest 'bash /tmp/bwm-u.sh run calamares calamares-biglinux_polkit'
+    guest 'bash /tmp/bwm-u.sh wait-new calamares t1 90'
+    new_installer=$(wait_marker U_NEW_calamares 150)
+    sleep 5
+    screendump 33-instalador
+    if [[ -n "$new_installer" && "$new_installer" != nenhuma ]]; then
+        record PASS calamares "calamares-biglinux_polkit abriu janela: $new_installer"
+    else
+        record FAIL calamares "calamares-biglinux_polkit não abriu janela em 90s"
+    fi
+    assert_visible instalador-visivel "o instalador" 33a-antes-do-instalador 33-instalador
+    if ((invisible > 0)); then
+        # A expansão é do shell da VM.
+        # shellcheck disable=SC2016
+        guest 'echo "BWM""_U_PICOM=$(pgrep -u '"$live_user"' -x picom >/dev/null && echo ativo || echo inativo)"'
+        record INFO compositor "picom $(wait_marker U_PICOM 20) (janelas mapeadas mas não desenhadas apontam para o compositor)"
+    fi
+    guest 'tail -n 20 /tmp/bwm-run-terminal.log /tmp/bwm-run-calamares.log 2>/dev/null | sed "s/^/BWMLOG /"'
+elif [[ "$usability" == true ]]; then
+    record WARN usabilidade "não testada: o wmaker não subiu"
 fi
 
 record INFO assistente "assistente live em execução: ${wizard:-?}"

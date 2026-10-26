@@ -31,7 +31,7 @@ semanal (segunda-feira, 05:17 UTC, ISO *testing* com os valores padrão).
 | `lint` | `contents: read`, sem contêiner | Valida as entradas (regex/allowlist); faz checkout de `big-windowmaker/iso-profiles` no ref pedido e fixa o SHA resultante para os jobs seguintes; confere os links simbólicos de `bigcommunity/wmaker` (`scripts/check-symlinks.sh`); confere que os pacotes esperados estão em `Packages-Desktop`; roda `pytest tests/` do iso-profiles; `bash -n` e `shellcheck` em `scripts/`. |
 | `local-repo` | `contents: read`, `actions: read` | Baixa os pacotes dos artefatos de CI (`scripts/fetch-package-artifacts.sh`), monta o repositório `[bigwm-local]` com `repo-add` num contêiner Manjaro **sem rede** (`scripts/make-local-repo.sh`) e o publica como artefato (retenção de 3 dias). |
 | `build` | `contents: read`; contêiner `--privileged` | Roda `build-iso/build-iso.sh` de `biglinux/iso-profiles` **fixado por commit** (`ENGINE_SHA`) no **mesmo contêiner, fixado pelo mesmo digest**, que o workflow *Build ISO* da BigLinux usa, com `PROFILES_ROOT` apontando para o checkout dos perfis, `DISTRONAME=bigcommunity`, `EDITION=wmaker`. Injeta `[bigwm-local]` logo antes do `buildiso` (`scripts/run-engine.sh`). Gera `.iso`, `.iso.sha256`, `.iso.pkgs` (lista de pacotes), o manifesto do repositório local e `.build-info` (commits do motor e dos perfis); confere que a ISO recebeu as versões do repositório local (`scripts/check-iso-packages.sh`). Artefato com retenção de 3 dias. |
-| `smoke-test` | `contents: read` | Boot da ISO em QEMU/KVM, BIOS e UEFI (OVMF), até a sessão live (`scripts/smoke-test.sh`; critérios abaixo). Logs e capturas de tela ficam como artefato por 7 dias. |
+| `smoke-test` | `contents: read` | Boot da ISO em QEMU/KVM, BIOS e UEFI (OVMF), até a sessão live, e prova de que a sessão Window Maker é utilizável (`scripts/smoke-test.sh`; critérios abaixo). Logs e capturas de tela ficam como artefato por 7 dias. |
 | `release` | `contents: write`, environment `iso-release` | Só em `workflow_dispatch` com `publish: true` e depois do smoke test aprovado nos dois firmwares: confere o sha256, gera `SHA256SUMS`, divide a ISO em partes 7z se passar de 2 GiB (limite por asset) e cria uma **pre-release** com `gh release create`. |
 
 Entradas do `workflow_dispatch`:
@@ -149,10 +149,30 @@ pela árvore de acessibilidade). É um teste curto e autocontido, rodado para
 8. **Tela**: a captura final tem ≥ 64 cores distintas (não é tela preta nem
    só texto).
 
+**Sessão utilizável** (desligável com `--usability false`; só quando o item 7
+passou). Os comandos rodam como o usuário live com o ambiente do próprio
+processo `wmaker` (`DISPLAY`, `XAUTHORITY`, D-Bus), e as janelas são lidas do
+servidor X pela EWMH com `scripts/smoke-x11-probe.py` (só libX11 via ctypes,
+enviado à VM pela serial):
+
+9. **EWMH**: `_NET_SUPPORTING_WM_CHECK` aponta para "Window Maker" (o WM
+   gerencia o display `:0`).
+10. **Dock**: wmclock, wmsystemtray, wmix, wmcpuload, wmmemload e wmnet
+    rodando (AutoLaunch do `WMState` padrão).
+11. **Menu raiz**: F12 abre o menu do Window Maker (a tela muda).
+12. **Terminal**: `xdg-terminal-exec` abre uma janela nova gerenciada pelo WM
+    e ela **aparece na tela** (`terminal-visivel`: a captura de antes e a de
+    depois diferem em pelo menos `SMOKE_MIN_WINDOW_BYTES` bytes — uma janela
+    mapeada que o compositor não desenha reprova).
+13. **Instalador**: `calamares-biglinux_polkit` (o atalho de instalação da
+    live) abre uma janela nova, que também precisa aparecer na tela
+    (`instalador-visivel`).
+
 Informativo: unidades systemd com falha e se o assistente estava rodando. O
 artefato `smoke-<firmware>-<run>` guarda `serial0.log` (kernel + journal
 completo), `serial1.log` (sondas), capturas `.ppm`/`.png` (menu do GRUB,
-entrada editada, boot, final), o comando do QEMU e `result.txt`.
+entrada editada, boot, final e `30-area-de-trabalho`, `31-menu-raiz`,
+`32-terminal`, `33-instalador`), o comando do QEMU e `result.txt`.
 
 Rodar localmente (sem root; precisa de `/dev/kvm`):
 
