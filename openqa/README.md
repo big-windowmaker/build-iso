@@ -35,7 +35,12 @@ a ISO de verdade numa VM e iniciam o sistema instalado:
    `/boot/efi` montado e entrada no `efibootmgr`;
 10. **segurança** (`installed_security`, não bloqueante): postura registrada
     como *softfail*;
-11. **sessão Wayland** (`bigwm_wayland_session`): um drop-in só de teste
+11. **atualização** (`bigwm_update`): `pacman -Syu`, instalação e remoção de
+    um pacote de teste (`xorg-xeyes`), `pacman -Qkk` dos pacotes do Big
+    WindowMaker (aceita só os `.desktop` que o `render-menu-options.sh` da
+    BigLinux altera no primeiro boot) e reinício até `graphical.target` sem
+    unidades com falha; saída em `ulogs/bigwm-update.txt`;
+12. **sessão Wayland** (`bigwm_wayland_session`, no sistema já atualizado): um drop-in só de teste
     (`/etc/lightdm/lightdm.conf.d/99-openqa-wayland.conf`,
     `autologin-session=big-wm-wayland`, usuário no grupo `autologin`) e um
     reinício; confere `wlmaker` do usuário no backend DRM da VM, o socket
@@ -71,7 +76,9 @@ Nada da BigLinux é copiado para este repositório. `scripts/install-test.sh`:
    no upstream);
 4. copia [`overlay/`](overlay) por cima;
 5. chama o `openqa/production/run-plan.sh` da BigLinux, que roda o
-   `isotovideo` no contêiner fixado por digest (`OPENQA_IMAGE`) com
+   `isotovideo` no contêiner fixado por digest (`OPENQA_IMAGE`, espelhado em
+   `ghcr.io/big-windowmaker` pelo workflow `mirror-openqa-image.yml`; sem
+   acesso ao GHCR, o script usa `OPENQA_IMAGE_SOURCE`, com o mesmo digest) com
    `/dev/kvm`, e gera o relatório (`report/RESULTADO.md`, em português).
 
 ### Patches (mudanças mínimas, todas com padrão igual ao comportamento da BigLinux)
@@ -95,7 +102,7 @@ quando as variáveis não são definidas.
 | `overlay/openqa/release-gate.yaml` | Substitui o `release-gate.yaml`: planos `live`, `bios` e `uefi`, disco de 30 GiB e as configurações da edição acima. |
 | `overlay/openqa/lib/bigwm.pm` | Verificações da sessão Window Maker. |
 | `overlay/openqa/tests/bigwm_live_session.pm`, `bigwm_installed_session.pm` | Módulos da sessão live e da instalada. |
-| `overlay/openqa/tests/bigwm_metrics.pm`, `bigwm_wayland_session.pm` | Métricas do sistema instalado e sessão Wayland. |
+| `overlay/openqa/tests/bigwm_metrics.pm`, `bigwm_update.pm`, `bigwm_wayland_session.pm` | Métricas, atualização do sistema instalado e sessão Wayland. |
 | `scripts/vm-metrics.sh` (copiado para `data/`) | Coleta de métricas, a mesma do smoke test. |
 
 ## Rodar localmente
