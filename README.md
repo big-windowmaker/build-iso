@@ -59,13 +59,15 @@ big-windowmaker/big-wm    ci.yml     big-wm-packages
 big-windowmaker/packages  build.yml  packages-windowmaker
 big-windowmaker/packages  build.yml  packages-wlmaker
 big-windowmaker/packages  build.yml  packages-big-dockapps
+big-windowmaker/packages  build.yml  packages-biglinux-livecd
+big-windowmaker/packages  build.yml  packages-gtk-nocsd
 ```
 
 `big-windowmaker/packages` publica um artefato por diretório de pacote
 (`packages-<diretório>`). `EXPECTED_PACKAGES` lista o que precisa sair do
 repositório local e estar na ISO (big-wm-session, big-wm-wayland,
-big-wm-themes, windowmaker, wlmaker, wmcpuload, wmbattery, wmusic, wmudmount,
-wmshutdown, wmmoonclock); faltar qualquer um é erro.
+big-wm-themes, windowmaker, wlmaker, os dockapps, biglinux-livecd e
+gtk-nocsd); faltar qualquer um é erro.
 
 Para cada fonte, `fetch-package-artifacts.sh` escolhe o artefato mais recente
 que: tem o nome exato e não expirou; vem de um run do workflow indicado; do

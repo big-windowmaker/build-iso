@@ -75,11 +75,13 @@ env:
     big-windowmaker/packages  build.yml  packages-wlmaker
     big-windowmaker/packages  build.yml  packages-big-dockapps
     big-windowmaker/packages  build.yml  packages-biglinux-livecd
+    big-windowmaker/packages  build.yml  packages-gtk-nocsd
   # Pacotes que precisam sair do repositório local e estar na ISO.
   EXPECTED_PACKAGES: >-
     big-wm-session big-wm-wayland big-wm-themes windowmaker wlmaker
     wmcpuload wmbattery wmusic wmudmount wmshutdown wmmoonclock wmnet
-    wmclock wmmemload wmsystemtray biglinux-livecd
+    wmclock wmmemload wmsystemtray biglinux-livecd gtk-nocsd
+    wmcube pclock wmwifi wmapmload minidock minicontrol mountapp
   # Imagem usada só para rodar repo-add sem rede (manjarolinux/base, a mesma
   # de big-windowmaker/packages). O Dependabot não atualiza digests usados
   # em `run:`; atualizar à mão.
