@@ -34,7 +34,17 @@ a ISO de verdade numa VM e iniciam o sistema instalado:
    `/etc/big-release`, **nenhuma unidade systemd com falha**, e em UEFI
    `/boot/efi` montado e entrada no `efibootmgr`;
 10. **segurança** (`installed_security`, não bloqueante): postura registrada
-    como *softfail*.
+    como *softfail*;
+11. **sessão Wayland** (`bigwm_wayland_session`): um drop-in só de teste
+    (`/etc/lightdm/lightdm.conf.d/99-openqa-wayland.conf`,
+    `autologin-session=big-wm-wayland`, usuário no grupo `autologin`) e um
+    reinício; confere `wlmaker` do usuário no backend DRM da VM, o socket
+    `wayland-N`, o `Xwayland` e `Type=wayland` no logind, com captura de tela e
+    `ulogs/bigwm-wayland-*.txt` (LightDM, `~/.xsession-errors`, journal). Se
+    falhar, tenta de novo só para diagnóstico (layout de teclado `(unset)` trocado
+    por `us`; depois `WLR_RENDERER=pixman`), dizendo o que mudou. A
+    sessão é experimental: a falha vira *softfail*, ou reprova com
+    `--setting BIGWM_WAYLAND_REQUIRED=1`.
 
 Cada passo lê a árvore de acessibilidade (AT-SPI) e o console serial; não há
 *needles* (comparação de imagem). Capturas de tela e vídeo são só evidência.
@@ -85,7 +95,7 @@ quando as variáveis não são definidas.
 | `overlay/openqa/release-gate.yaml` | Substitui o `release-gate.yaml`: planos `live`, `bios` e `uefi`, disco de 30 GiB e as configurações da edição acima. |
 | `overlay/openqa/lib/bigwm.pm` | Verificações da sessão Window Maker. |
 | `overlay/openqa/tests/bigwm_live_session.pm`, `bigwm_installed_session.pm` | Módulos da sessão live e da instalada. |
-| `overlay/openqa/tests/bigwm_metrics.pm` | Métricas do sistema instalado. |
+| `overlay/openqa/tests/bigwm_metrics.pm`, `bigwm_wayland_session.pm` | Métricas do sistema instalado e sessão Wayland. |
 | `scripts/vm-metrics.sh` (copiado para `data/`) | Coleta de métricas, a mesma do smoke test. |
 
 ## Rodar localmente
