@@ -156,14 +156,17 @@ jobs:
       - name: Links simbólicos da edição
         run: bash ci/scripts/check-symlinks.sh profiles "$DISTRONAME/$EDITION"
 
-      - name: Pacotes esperados listados em Packages-Desktop
+      - name: Pacotes esperados listados na edição
         run: |
           set -euo pipefail
-          list="profiles/$DISTRONAME/$EDITION/Packages-Desktop"
+          # Root e Live costumam ser links para shared/; o grep segue os links.
+          edition="profiles/$DISTRONAME/$EDITION"
+          lists=("$edition/Packages-Root" "$edition/Packages-Desktop" "$edition/Packages-Live")
           missing=0
           for name in $EXPECTED_PACKAGES; do
-            if ! grep -Eq "^(>[a-z0-9_]+[[:space:]]+)?${name}([[:space:]]|$)" "$list"; then
-              echo "::error file=$list::$name não está em Packages-Desktop"
+            # Aceita marcadores do manjaro-tools (">extra nome") e restrições de versão.
+            if ! grep -Eqh "^(>[a-z0-9_]+[[:space:]]+)?${name}([<>=]|[[:space:]]|$)" "${lists[@]}"; then
+              echo "::error file=$edition/Packages-Desktop::$name não está em Packages-Root/Desktop/Live"
               missing=1
             fi
           done
