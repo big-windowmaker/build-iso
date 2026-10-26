@@ -169,6 +169,13 @@ enviado à VM pela serial):
     live) abre uma janela nova, que também precisa aparecer na tela
     (`instalador-visivel`).
 
+**Métricas** (informativas): a saída literal de `scripts/vm-metrics.sh`,
+executado como root na VM, vai para `metrics-sessao.txt` logo depois que a
+sessão sobe (`systemd-analyze` e `blame`, `free -m`, processos, RSS do usuário
+e do `wmaker`, unidades com falha do sistema e do usuário, `journalctl -b -p
+err`, `coredumpctl list`, `df -h /`) e para `metrics-ocioso.txt` (memória)
+depois de `SMOKE_IDLE_SECONDS` (300; 0 desliga).
+
 Informativo: unidades systemd com falha e se o assistente estava rodando. O
 artefato `smoke-<firmware>-<run>` guarda `serial0.log` (kernel + journal
 completo), `serial1.log` (sondas), capturas `.ppm`/`.png` (menu do GRUB,

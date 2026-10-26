@@ -119,6 +119,8 @@ for p in "$repo_root"/openqa/patches/*.patch; do
         || die "o patch ${p##*/} não se aplica a $UPSTREAM_REPO@$UPSTREAM_SHA"
 done
 cp -a -- "$repo_root/openqa/overlay/." "$harness/"
+# Servido à VM pelo isotovideo (data_url) para o módulo bigwm_metrics.
+install -m 0644 -- "$repo_root/scripts/vm-metrics.sh" "$harness/data/vm-metrics.sh"
 find "$harness" -name '*.orig' -delete
 
 #--- 2. Execução ----------------------------------------------------------------

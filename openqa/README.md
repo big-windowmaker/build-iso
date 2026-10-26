@@ -24,11 +24,17 @@ a ISO de verdade numa VM e iniciam o sistema instalado:
 7. **sessão instalada** (`bigwm_installed_session`): a sessão padrão é a
    `big-wm` (`startbigwm`, não o `wmaker.desktop` genérico), Dock completo,
    terminal abre janela; a configuração do LightDM vai para os logs;
-8. **saúde** (`installed_health`): raiz num dispositivo real (não overlay),
+8. **métricas** (`bigwm_metrics`, informativo): saída literal de
+   `scripts/vm-metrics.sh` como root — `systemd-analyze` e `blame`, `free -m`,
+   número de processos, RSS dos processos do usuário e do `wmaker`, unidades
+   com falha do sistema e do usuário, `journalctl -b -p err`, `coredumpctl
+   list`, `df -h /` — logo depois do login e de novo (memória) após
+   `BIGWM_IDLE_SECONDS` (300) ocioso; em `ulogs/bigwm-metrics-installed-*.txt`;
+9. **saúde** (`installed_health`): raiz num dispositivo real (não overlay),
    `/etc/big-release`, **nenhuma unidade systemd com falha**, e em UEFI
    `/boot/efi` montado e entrada no `efibootmgr`;
-9. **segurança** (`installed_security`, não bloqueante): postura registrada
-   como *softfail*.
+10. **segurança** (`installed_security`, não bloqueante): postura registrada
+    como *softfail*.
 
 Cada passo lê a árvore de acessibilidade (AT-SPI) e o console serial; não há
 *needles* (comparação de imagem). Capturas de tela e vídeo são só evidência.
@@ -79,6 +85,8 @@ quando as variáveis não são definidas.
 | `overlay/openqa/release-gate.yaml` | Substitui o `release-gate.yaml`: planos `live`, `bios` e `uefi`, disco de 30 GiB e as configurações da edição acima. |
 | `overlay/openqa/lib/bigwm.pm` | Verificações da sessão Window Maker. |
 | `overlay/openqa/tests/bigwm_live_session.pm`, `bigwm_installed_session.pm` | Módulos da sessão live e da instalada. |
+| `overlay/openqa/tests/bigwm_metrics.pm` | Métricas do sistema instalado. |
+| `scripts/vm-metrics.sh` (copiado para `data/`) | Coleta de métricas, a mesma do smoke test. |
 
 ## Rodar localmente
 

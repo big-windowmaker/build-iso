@@ -55,6 +55,11 @@
 #      tela (instalador-visivel).
 # As capturas 30-* a 33-* servem também para o README.
 #
+# Métricas (informativas, saída literal de scripts/vm-metrics.sh):
+# metrics-sessao.txt (systemd-analyze, blame, free -m, processos, RSS,
+# unidades com falha, erros do journal, coredumps, df /) logo depois da
+# sessão subir e metrics-ocioso.txt (memória) após SMOKE_IDLE_SECONDS.
+#
 # Informativo (não reprova): unidades systemd com falha, presença do assistente.
 #
 # Saída em --out: serial0.log (kernel+journal), serial1.log (sondas),
@@ -75,7 +80,7 @@ Opções: --usability true|false (padrão true) testa se a sessão é utilizáve
 
 Variáveis opcionais: SMOKE_BOOT_TIMEOUT (s, padrão 900), SMOKE_GRUB_WAIT
 (s, padrão 45), SMOKE_MEMORY_MB (4096), SMOKE_CPUS (2), SMOKE_MIN_COLORS (64),
-SMOKE_MIN_WINDOW_BYTES (300000),
+SMOKE_MIN_WINDOW_BYTES (300000), SMOKE_IDLE_SECONDS (300; 0 desliga),
 SMOKE_MONITOR_PORT (45454), SMOKE_SERIAL_PORT (45455), SMOKE_ALLOW_TCG (0).
 EOF
 }
@@ -106,6 +111,7 @@ memory=${SMOKE_MEMORY_MB:-4096}
 cpus=${SMOKE_CPUS:-2}
 min_colors=${SMOKE_MIN_COLORS:-64}
 min_window_bytes=${SMOKE_MIN_WINDOW_BYTES:-300000}
+idle_seconds=${SMOKE_IDLE_SECONDS:-300}
 mon_port=${SMOKE_MONITOR_PORT:-45454}
 ser_port=${SMOKE_SERIAL_PORT:-45455}
 
@@ -119,8 +125,10 @@ case "$require_patch" in true | false) ;; *) die "--require-livecd-patch deve se
 case "$usability" in true | false) ;; *) die "--usability deve ser true ou false" ;; esac
 x11_probe="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/smoke-x11-probe.py"
 [[ -f "$x11_probe" ]] || die "sonda X11 não encontrada: $x11_probe"
+metrics_script="${x11_probe%/*}/vm-metrics.sh"
+[[ -f "$metrics_script" ]] || die "script de métricas não encontrado: $metrics_script"
 [[ "$live_user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || die "usuário live inválido: $live_user"
-for n in "$boot_timeout" "$grub_wait" "$memory" "$cpus" "$min_colors" "$min_window_bytes" "$mon_port" "$ser_port"; do
+for n in "$boot_timeout" "$grub_wait" "$memory" "$cpus" "$min_colors" "$min_window_bytes" "$idle_seconds" "$mon_port" "$ser_port"; do
     [[ "$n" =~ ^[0-9]+$ ]] || die "valor numérico inválido: $n"
 done
 command -v qemu-system-x86_64 >/dev/null || die "qemu-system-x86_64 não instalado"
@@ -550,6 +558,24 @@ assert_visible() { # critério descrição antes depois
     fi
 }
 
+#--- 5. Métricas (sessão recém-iniciada) ----------------------------------------
+
+# Saída literal de scripts/vm-metrics.sh na VM (como root), sem interpretação:
+# metrics-sessao.txt logo depois que a sessão subiu e metrics-ocioso.txt
+# (memória e processos) depois de SMOKE_IDLE_SECONDS desde a primeira coleta.
+collect_metrics() { # modo rótulo arquivo prefixo
+    guest "bash /tmp/vm-metrics.sh $live_user $1 $2 2>&1 | sed 's/^/$4 /'; echo \"BWM\"\"_M_$4=1\""
+    if [[ -n "$(wait_marker "M_$4" 180)" ]]; then
+        tr -d '\r' <"$out/serial1.log" | sed -n "s/^.*$4 //p" >"$out/$3"
+        record INFO "métricas-$2" "$3"
+    else
+        record INFO "métricas-$2" "não coletadas (a VM não respondeu em 180s)"
+    fi
+}
+send_file "$metrics_script" /tmp/vm-metrics.sh
+collect_metrics completo sessao metrics-sessao.txt BWMM1
+metrics_start=$SECONDS
+
 if [[ "$usability" == true && "$wmaker" == yes ]]; then
     log "Sessão utilizável: Dock, EWMH, menu raiz, terminal e instalador"
     write_guest_helper >"$out/bwm-usability.sh"
@@ -623,6 +649,21 @@ if [[ "$usability" == true && "$wmaker" == yes ]]; then
     guest 'tail -n 20 /tmp/bwm-run-terminal.log /tmp/bwm-run-calamares.log 2>/dev/null | sed "s/^/BWMLOG /"'
 elif [[ "$usability" == true ]]; then
     record WARN usabilidade "não testada: o wmaker não subiu"
+fi
+
+if ((idle_seconds > 0)); then
+    wait_left=$((idle_seconds - (SECONDS - metrics_start)))
+    if ((wait_left > 0)); then
+        log "Aguardando ${wait_left}s para a amostra de memória depois de ${idle_seconds}s"
+        idle_end=$((SECONDS + wait_left))
+        while ((SECONDS < idle_end)); do
+            alive
+            sleep 5
+        done
+    fi
+    collect_metrics memoria "ocioso-${idle_seconds}s" metrics-ocioso.txt BWMM2
+else
+    record INFO métricas-ocioso "não coletadas (SMOKE_IDLE_SECONDS=0)"
 fi
 
 record INFO assistente "assistente live em execução: ${wizard:-?}"
