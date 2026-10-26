@@ -1,0 +1,43 @@
+# Espelha no GHCR da organização a imagem do isotovideo usada pelo teste de
+# instalação (openqa/upstream.env). O registro do openSUSE guarda poucas
+# versões e já removeu digests usados antes; com o espelho, o teste não
+# depende dele. "skopeo copy --all" preserva o digest, então a fixação
+# continua sendo o mesmo sha256.
+name: Espelhar imagem do openQA
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  mirror:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Copiar a imagem fixada para ghcr.io
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          . openqa/upstream.env
+          source=${OPENQA_IMAGE_SOURCE:-$OPENQA_IMAGE}
+          [[ "$source" =~ ^registry\.opensuse\.org/.+@(sha256:[0-9a-f]{64})$ ]] \
+            || { echo "::error::OPENQA_IMAGE_SOURCE inválido: $source"; exit 1; }
+          digest=${BASH_REMATCH[1]}
+          target=ghcr.io/big-windowmaker/openqa-single-instance
+          printf '%s' "$GH_TOKEN" | skopeo login ghcr.io -u "$ACTOR" --password-stdin
+          skopeo copy --all --preserve-digests "docker://$source" "docker://$target:mirror-${digest#sha256:}"
+          copied=$(skopeo inspect --raw "docker://$target:mirror-${digest#sha256:}" | sha256sum | cut -d' ' -f1)
+          [[ "sha256:$copied" == "$digest" ]] \
+            || { echo "::error::digest do espelho ($copied) difere da origem ($digest)"; exit 1; }
+          echo "Espelhada: $target@$digest" >> "$GITHUB_STEP_SUMMARY"
