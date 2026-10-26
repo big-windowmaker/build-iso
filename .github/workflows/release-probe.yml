@@ -34,3 +34,26 @@ jobs:
           gh release create "$tag" --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
             --title "probe" --notes-file notes.md -- a.txt && echo "RESULT_VERIFY=ok" || echo "RESULT_VERIFY=falhou"
           gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+  probe-exact:
+    runs-on: ubuntu-24.04
+    environment: iso-release
+    permissions:
+      contents: write
+    steps:
+      - name: Mesmo comando do job release, arquivos pequenos
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISO: bigcommunity_wmaker_2026-10-26_k618.iso
+        run: |
+          set -x
+          mkdir rel && cd rel
+          for f in "$ISO.7z.001" "$ISO.7z.002" "$ISO.7z.003" "$ISO.sha256" "$ISO.pkgs" "$ISO.bigwm-local.manifest" "$ISO.bigwm-local.sources.tsv" "$ISO.build-info" SHA256SUMS; do echo x > "$f"; done
+          printf 'iso=%s\nworkflow_run=https://github.com/big-windowmaker/build-iso/actions/runs/1\n' "$ISO" > "$ISO.build-info"
+          tag="probe-exact-${ISO%.iso}-r7"
+          { echo "**Big WindowMaker — Alpha (ISO de teste). Não use em produção.**"; echo; echo '```'; cat "$ISO.build-info"; echo '```'; } > notes.md
+          mapfile -t files < <(find . -maxdepth 1 -type f ! -name notes.md -printf '%f\n' | sort)
+          GH_DEBUG=api gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target b2acad8 --prerelease \
+            --title "Big WindowMaker Alpha — $ISO" --notes-file notes.md -- "${files[@]}" 2>debug.txt \
+            && echo "RESULT_EXACT=ok" || { echo "RESULT_EXACT=falhou"; grep -E '^(\* Request to|< HTTP|\{"message)' debug.txt | head -20; }
+          gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+
