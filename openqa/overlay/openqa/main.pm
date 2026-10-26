@@ -21,11 +21,12 @@ testapi::set_distribution(biglinux->new);
 # (aplicativos KDE da política) e os testes opcionais nonvisual_tasks e
 # installed_brave.
 # bigwm_metrics coleta métricas logo após o login e depois de 5 min ocioso;
-# bigwm_wayland_session reinicia na sessão Wayland (por isso é o último).
+# bigwm_update atualiza o sistema (pacman -Syu) e reinicia; bigwm_wayland_session
+# reinicia na sessão Wayland já atualizada (por isso é o último).
 my @install = map { "openqa/tests/$_.pm" } qw(
     installer_launch installer_partitions installer_user installer_install
     installed_boot installed_login bigwm_installed_session bigwm_metrics
-    installed_health installed_security bigwm_wayland_session
+    installed_health installed_security bigwm_update bigwm_wayland_session
 );
 my @live = map { "openqa/tests/$_.pm" } qw(live_desktop bigwm_live_session);
 

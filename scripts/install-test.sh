@@ -89,6 +89,16 @@ for tool in docker git patch ruby python3; do
 done
 [[ -r /dev/kvm && -w /dev/kvm ]] || die "/dev/kvm indisponível para este usuário"
 
+# Imagem do isotovideo: o espelho no GHCR; sem acesso a ele (por exemplo sem
+# docker login no ghcr.io), a origem no openSUSE com o mesmo digest.
+image=$OPENQA_IMAGE
+if ! docker image inspect "$image" >/dev/null 2>&1 && ! docker pull --quiet "$image" >/dev/null 2>&1; then
+    [[ -n "${OPENQA_IMAGE_SOURCE:-}" && "${OPENQA_IMAGE_SOURCE##*@}" == "${OPENQA_IMAGE##*@}" ]] \
+        || die "não foi possível baixar $image e não há origem com o mesmo digest"
+    log "sem acesso a $image; usando a origem $OPENQA_IMAGE_SOURCE (mesmo digest)"
+    image=$OPENQA_IMAGE_SOURCE
+fi
+
 mkdir -p -- "$out"
 out=$(cd -- "$out" && pwd -P)
 iso=$(realpath -- "$iso")
@@ -141,7 +151,7 @@ mkdir -p -- "$results"
 
 args=(
     --plan "$plan" --iso "$iso" --results "$results"
-    --password-file "$password_file" --image "$OPENQA_IMAGE"
+    --password-file "$password_file" --image "$image"
     --build "${INSTALL_TEST_BUILD:-local}"
     --commit "$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || echo unknown)"
     --iso-sha256 "${INSTALL_TEST_ISO_SHA256:-$(sha256sum -- "$iso" | cut -d' ' -f1)}"

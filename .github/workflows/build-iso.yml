@@ -484,6 +484,7 @@ jobs:
     timeout-minutes: 150
     permissions:
       contents: read
+      packages: read
     strategy:
       fail-fast: false
       matrix:
@@ -503,7 +504,7 @@ jobs:
           . ci/openqa/upstream.env
           [[ "$UPSTREAM_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
           [[ "$UPSTREAM_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$OPENQA_IMAGE" =~ ^registry\.opensuse\.org/.+@sha256:[0-9a-f]{64}$ ]]
+          [[ "$OPENQA_IMAGE" =~ ^ghcr\.io/big-windowmaker/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ]]
           {
             echo "repo=$UPSTREAM_REPO"
             echo "sha=$UPSTREAM_SHA"
@@ -521,6 +522,7 @@ jobs:
       - name: Preparar KVM, OVMF, disco e a imagem do isotovideo
         env:
           OPENQA_IMAGE: ${{ steps.harness.outputs.image }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           sudo apt-get update
@@ -548,6 +550,7 @@ jobs:
             fi
           done
           command -v ruby >/dev/null || { echo "::error::ruby não instalado"; exit 1; }
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           docker pull --quiet "$OPENQA_IMAGE"
           df -h / /mnt
 
