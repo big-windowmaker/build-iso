@@ -1,0 +1,89 @@
+# Publica como pre-release (Alpha) a ISO de um run do build-iso.yml já
+# aprovado, sem refazer o pipeline. Antes de publicar confere pela API que,
+# naquele run, o build, os smoke tests e os testes de instalação (BIOS e
+# UEFI) passaram; só então baixa a ISO do artefato e chama
+# scripts/publish-release.sh.
+name: Publicar ISO aprovada
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "ID do run do build-iso.yml cuja ISO será publicada"
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publicar pre-release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: iso-release
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Conferir que o run foi aprovado em todos os testes
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::run_id inválido"; exit 1; }
+          info=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID")
+          [[ "$(jq -r .path <<<"$info")" == .github/workflows/build-iso.yml ]] \
+            || { echo "::error::o run $RUN_ID não é do build-iso.yml"; exit 1; }
+          sha=$(jq -r .head_sha <<<"$info")
+          number=$(jq -r .run_number <<<"$info")
+          jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/jobs?per_page=100" \
+            --jq '.jobs[] | "\(.name)\t\(.conclusion)"')
+          echo "$jobs"
+          for required in "ISO " "Smoke test (bios)" "Smoke test (uefi)" "Instalação (bios)" "Instalação (uefi)"; do
+            grep -q "^${required}[^$(printf '\t')]*$(printf '\t')success$" <<<"$jobs" \
+              || { echo "::error::job \"$required\" não foi aprovado no run $RUN_ID"; exit 1; }
+          done
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Baixar a ISO aprovada
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+          sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/release /mnt/tmp
+          TMPDIR=/mnt/tmp gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" -n "iso-$RUN_ID" -D /mnt/release
+          ls -la /mnt/release
+
+      - name: Publicar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.run.outputs.sha }}
+          NUMBER: ${{ steps.run.outputs.number }}
+        run: |
+          set -euo pipefail
+          command -v 7z >/dev/null || { sudo apt-get update; sudo apt-get install --yes p7zip-full; }
+          iso=$(find /mnt/release -maxdepth 1 -name '*.iso' -printf '%f\n')
+          [[ "$iso" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]] || { echo "::error::ISO não encontrada"; exit 1; }
+          url=$(bash scripts/publish-release.sh /mnt/release "$iso" "${iso%.iso}-r$NUMBER" "$SHA")
+          echo "Pre-release publicada: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar a resposta da API em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: publish-debug-${{ github.run_id }}
+          path: /mnt/release/gh-api-debug.txt
+          if-no-files-found: ignore
+          retention-days: 7

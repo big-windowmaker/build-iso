@@ -607,56 +607,27 @@ jobs:
           name: iso-${{ github.run_id }}
           path: /mnt/release
 
-      - name: Conferir, gerar SHA256SUMS e dividir se passar de 2 GiB
-        env:
-          ISO: ${{ needs.build.outputs.iso }}
-        run: |
-          set -euo pipefail
-          [[ "$ISO" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]]
-          cd /mnt/release
-          sha256sum --check --strict -- "$ISO.sha256"
-          # SHA256SUMS cobre a ISO inteira (o que o usuário confere depois de
-          # juntar as partes) e os arquivos auxiliares.
-          sha256sum -- "$ISO" "$ISO.pkgs" "$ISO.bigwm-local.manifest" \
-            "$ISO.bigwm-local.sources.tsv" "$ISO.build-info" > SHA256SUMS
-          # Limite de 2 GiB por asset de release: divide em partes 7z.
-          if [[ -n "$(du --threshold=2000M -- "$ISO")" ]]; then
-            command -v 7z >/dev/null || { sudo apt-get update; sudo apt-get install --yes p7zip-full; }
-            7z a -mx=0 -v2000m -- "$ISO.7z" "$ISO"
-            rm -- "$ISO"
-            sha256sum -- "$ISO".7z.* >> SHA256SUMS
-          fi
-          cat SHA256SUMS
+      - name: Checkout deste repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ci
+          persist-credentials: false
 
-      - name: Criar a pre-release
+      - name: Publicar (rascunho, envio dos arquivos e publicação)
         env:
           GH_TOKEN: ${{ github.token }}
           ISO: ${{ needs.build.outputs.iso }}
         run: |
           set -euo pipefail
-          cd /mnt/release
-          tag="${ISO%.iso}-r${GITHUB_RUN_NUMBER}"
-          [[ "$tag" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
-          {
-            echo "**Big WindowMaker — Alpha (ISO de teste). Não use em produção.**"
-            echo
-            echo "Sessão padrão: Big WindowMaker — X11 (Window Maker). Sessão experimental: Big WindowMaker — Wayland (wlmaker)."
-            echo
-            echo "- Pacotes do Big WindowMaker vêm de um repositório local **não assinado** ([bigwm-local]), montado a partir de artefatos de CI. A assinatura (chave própria, bigwm-keyring, SHA256SUMS.sig) é a fase 2."
-            echo "- A sessão live precisa do patch do biglinux-livecd (branch \`window-maker\` de big-windowmaker/biglinux-livecd) até ele entrar na BigLinux; sem ele a sessão entra em loop no login."
-            echo "- Aprovada no smoke test em QEMU (BIOS e UEFI) e no teste de instalação (Calamares, BIOS e UEFI, com o harness openQA da BigLinux adaptado ao Window Maker; ver openqa/README.md)."
-            echo
-            echo "Confira com \`sha256sum -c SHA256SUMS\` (se a ISO estiver em partes: \`7z x $ISO.7z.001\` antes)."
-            echo
-            echo '```'
-            cat "$ISO.build-info"
-            echo '```'
-          } > notes.md
-          mapfile -t files < <(find . -maxdepth 1 -type f ! -name notes.md -printf '%f\n' | sort)
-          gh release create "$tag" \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --prerelease \
-            --title "Big WindowMaker Alpha — $ISO" \
-            --notes-file notes.md \
-            -- "${files[@]}"
+          command -v 7z >/dev/null || { sudo apt-get update; sudo apt-get install --yes p7zip-full; }
+          url=$(bash ci/scripts/publish-release.sh /mnt/release "$ISO" "${ISO%.iso}-r${GITHUB_RUN_NUMBER}" "$GITHUB_SHA")
+          echo "Pre-release publicada: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar a resposta da API em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: publish-debug-${{ github.run_id }}
+          path: /mnt/release/gh-api-debug.txt
+          if-no-files-found: ignore
+          retention-days: 7
