@@ -1,6 +1,6 @@
-# Diagnóstico temporário: o job "release" recebeu HTTP 403 ao criar a
-# release. Cria e apaga um rascunho (não público) com o GITHUB_TOKEN para
-# isolar a causa. Remover depois do diagnóstico.
+# Diagnóstico temporário: o job "release" recebe HTTP 403 ao criar a
+# release publicada; rascunhos funcionam. Testa a hipótese de que publicar
+# exige criar a tag num commit que altera workflows. Remover depois.
 name: Diagnóstico de release
 on:
   workflow_dispatch:
@@ -8,44 +8,29 @@ permissions: {}
 jobs:
   probe:
     runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - name: Rascunho via API, sem target
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -x
-          gh api -X POST "repos/$GITHUB_REPOSITORY/releases" -f tag_name="probe-$GITHUB_RUN_ID-a" -F draft=true --jq .id > id-a || true
-          [ -s id-a ] && gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$(cat id-a)"
-      - name: Rascunho via API, com target_commitish
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -x
-          gh api -X POST "repos/$GITHUB_REPOSITORY/releases" -f tag_name="probe-$GITHUB_RUN_ID-b" -f target_commitish="$GITHUB_SHA" -F draft=true --jq .id > id-b || true
-          [ -s id-b ] && gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$(cat id-b)"
-      - name: Criar tag via API
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -x
-          gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/probe-$GITHUB_RUN_ID-c" -f sha="$GITHUB_SHA" || true
-          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/probe-$GITHUB_RUN_ID-c" || true
-  probe-env:
-    runs-on: ubuntu-24.04
     environment: iso-release
     permissions:
       contents: write
     steps:
-      - name: gh release create no ambiente iso-release (rascunho)
+      - name: Publicar sem tag prévia (esperado 403 se a hipótese vale)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -x
-          echo "nota" > notes.md; echo teste > a.txt
-          tag="probe-$GITHUB_RUN_ID-env"
-          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease \
-            --title "Big WindowMaker Alpha — teste" --notes-file notes.md -- a.txt || true
+          echo nota > notes.md; echo teste > a.txt
+          tag="probe-$GITHUB_RUN_ID-pub"
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "probe" --notes-file notes.md -- a.txt && echo "RESULT_PUB=ok" || echo "RESULT_PUB=falhou"
           gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
-
+      - name: Criar a tag pela API de refs e publicar com --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -x
+          echo nota > notes.md; echo teste > a.txt
+          tag="probe-$GITHUB_RUN_ID-tag"
+          gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$GITHUB_SHA" >/dev/null \
+            && echo "RESULT_REF=ok" || echo "RESULT_REF=falhou"
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
+            --title "probe" --notes-file notes.md -- a.txt && echo "RESULT_VERIFY=ok" || echo "RESULT_VERIFY=falhou"
+          gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
