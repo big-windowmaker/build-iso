@@ -426,7 +426,13 @@ jobs:
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-          test -r /dev/kvm -a -w /dev/kvm
+          # O trigger é assíncrono: espera o udev aplicar a permissão.
+          sudo udevadm settle --timeout=30
+          for _ in $(seq 1 20); do
+            [[ -r /dev/kvm && -w /dev/kvm ]] && break
+            sleep 0.5
+          done
+          [[ -r /dev/kvm && -w /dev/kvm ]] || { ls -l /dev/kvm; echo "::error::/dev/kvm sem permissão para o runner"; exit 1; }
           sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/smoke
           for pair in /usr/share/OVMF/OVMF_CODE_4M.fd:/usr/share/OVMF/OVMF_VARS_4M.fd \
                       /usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd; do
@@ -524,7 +530,13 @@ jobs:
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-          test -r /dev/kvm -a -w /dev/kvm
+          # O trigger é assíncrono: espera o udev aplicar a permissão.
+          sudo udevadm settle --timeout=30
+          for _ in $(seq 1 20); do
+            [[ -r /dev/kvm && -w /dev/kvm ]] && break
+            sleep 0.5
+          done
+          [[ -r /dev/kvm && -w /dev/kvm ]] || { ls -l /dev/kvm; echo "::error::/dev/kvm sem permissão para o runner"; exit 1; }
           # Disco do convidado (qcow2 esparso de 30 GiB) e ISO no /mnt.
           sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/install
           for pair in /usr/share/OVMF/OVMF_CODE_4M.fd:/usr/share/OVMF/OVMF_VARS_4M.fd \
