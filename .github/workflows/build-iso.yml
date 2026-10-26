@@ -635,7 +635,9 @@ jobs:
           tag="${ISO%.iso}-r${GITHUB_RUN_NUMBER}"
           [[ "$tag" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
           {
-            echo "**ISO de TESTE do Big WindowMaker. Não use em produção.**"
+            echo "**Big WindowMaker — Alpha (ISO de teste). Não use em produção.**"
+            echo
+            echo "Sessão padrão: Big WindowMaker — X11 (Window Maker). Sessão experimental: Big WindowMaker — Wayland (wlmaker)."
             echo
             echo "- Pacotes do Big WindowMaker vêm de um repositório local **não assinado** ([bigwm-local]), montado a partir de artefatos de CI. A assinatura (chave própria, bigwm-keyring, SHA256SUMS.sig) é a fase 2."
             echo "- A sessão live precisa do patch do biglinux-livecd (branch \`window-maker\` de big-windowmaker/biglinux-livecd) até ele entrar na BigLinux; sem ele a sessão entra em loop no login."
@@ -652,6 +654,6 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "$ISO (teste)" \
+            --title "Big WindowMaker Alpha — $ISO" \
             --notes-file notes.md \
             -- "${files[@]}"
