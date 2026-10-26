@@ -369,7 +369,10 @@ jobs:
           iso=${isos[0]}
           [[ "$iso" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]]
           [[ -s "$iso.pkgs" ]] || { echo "lista de pacotes $iso.pkgs ausente" >&2; exit 1; }
-          bash ../ci/scripts/check-iso-packages.sh "$iso.pkgs" /srv/bigwm-local/bigwm-local.manifest
+          # Os pacotes de Packages-Live (biglinux-livecd) ficam no livefs.sfs,
+          # fora do .pkgs: o script os procura na camada live da ISO.
+          bash ../ci/scripts/check-iso-packages.sh "$iso.pkgs" /srv/bigwm-local/bigwm-local.manifest \
+            "$iso" "../profiles/$DISTRONAME/$EDITION/Packages-Live"
           cp /srv/bigwm-local/bigwm-local.manifest "$iso.bigwm-local.manifest"
           cp /srv/bigwm-local/bigwm-local.sources.tsv "$iso.bigwm-local.sources.tsv"
           {

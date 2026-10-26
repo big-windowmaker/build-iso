@@ -117,7 +117,10 @@ chroot (`copy_from_cache`, imagem mhwd) usa o `pacman.conf` do perfil, que não
 recebe `[bigwm-local]`; pelo mesmo motivo **o repositório local não vai para a
 ISO** (o `/etc/pacman.conf` instalado é o do perfil). Depois do build,
 `check-iso-packages.sh` confere na lista `.pkgs` que a ISO tem exatamente as
-versões do repositório local.
+versões do repositório local. Os pacotes de `Packages-Live` (o
+`biglinux-livecd`) ficam na camada live (`livefs.sfs`) e não entram no
+`.pkgs`: para eles o script extrai o `livefs.sfs` da ISO (`xorriso`) e procura
+`var/lib/pacman/local/<nome>-<versão>` (`unsquashfs -l`).
 
 ## Smoke test: o que é verificado
 
