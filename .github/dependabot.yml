@@ -1,0 +1,11 @@
+# Mantém as actions fixadas por SHA atualizadas (o Dependabot atualiza o SHA e
+# o comentário de versão). Imagens de contêiner fixadas por digest no workflow
+# (motor da BigLinux e manjarolinux/base) são atualizadas à mão: ver README.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
