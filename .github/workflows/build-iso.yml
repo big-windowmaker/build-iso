@@ -73,7 +73,7 @@ env:
   # Pacotes que precisam sair do repositório local e estar na ISO.
   EXPECTED_PACKAGES: >-
     big-wm-session big-wm-wayland big-wm-themes windowmaker wlmaker
-    wmcpuload wmbattery wmusic wmudmount wmshutdown wmmoonclock
+    wmcpuload wmbattery wmusic wmudmount wmshutdown wmmoonclock wmnet
   # Imagem usada só para rodar repo-add sem rede (manjarolinux/base, a mesma
   # de big-windowmaker/packages). O Dependabot não atualiza digests usados
   # em `run:`; atualizar à mão.
