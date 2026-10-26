@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ruscher <rruscher@gmail.com>
+Date: Mon, 26 Oct 2026 01:59:56 -0300
+Subject: [PATCH 4/5] =?UTF-8?q?openqa:=20display=20manager,=20greeter=20e?=
+ =?UTF-8?q?=20shell=20do=20sistema=20instalado=20configur=C3=A1veis?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ openqa/lib/installed_system.pm | 37 +++++++++++++++++++++++++---------
+ 1 file changed, 27 insertions(+), 10 deletions(-)
+
+diff --git a/openqa/lib/installed_system.pm b/openqa/lib/installed_system.pm
+index fa12ce7..507b2d6 100644
+--- a/openqa/lib/installed_system.pm
++++ b/openqa/lib/installed_system.pm
+@@ -109,22 +109,26 @@ sub assert_display_manager {
+     reset_consoles;
+     select_console 'user-virtio-terminal';
+     select_console 'sut';
+-    my $exit_code = atspi->run_command_until('pgrep -x sddm >/dev/null 2>&1', 60);
++    # Big WindowMaker: the display manager is a job setting (default sddm).
++    my $manager = _process_setting('BIGLINUX_DISPLAY_MANAGER', 'sddm');
++    my $exit_code = atspi->run_command_until("pgrep -x $manager >/dev/null 2>&1", 60);
+     die 'The installed system did not start its display manager'
+       unless defined $exit_code && $exit_code == 0;
+     record_info 'Installed boot',
+-      'The installed system booted, its account authenticates and SDDM is running';
++      "The installed system booted, its account authenticates and $manager is running";
+ }
+ 
+ # The greeter process is the accessible-free way to know the login screen is
+ # up: SDDM's own QML greeter publishes no useful accessibility tree, and its
+ # appearance is exactly what a theme change is allowed to alter.
+ sub assert_greeter {
++    # Big WindowMaker: the greeter is a job setting (default sddm-greeter).
++    my $greeter = _process_setting('BIGLINUX_GREETER', 'sddm-greeter');
+     my $exit_code = atspi->run_command_until(
+-        'pgrep -f "sddm-greeter" >/dev/null 2>&1', 60);
++        "pgrep -f $greeter >/dev/null 2>&1", 60);
+     die 'The installed system did not show its login greeter'
+       unless defined $exit_code && $exit_code == 0;
+-    record_info 'Installed greeter', 'The SDDM greeter process is running';
++    record_info 'Installed greeter', "The $greeter greeter process is running";
+ }
+ 
+ sub assert_desktop {
+@@ -132,9 +136,13 @@ sub assert_desktop {
+     # has to be installed again, and this is a new graphical session.
+     atspi->install;
+     atspi->reset_baseline;
++    # Big WindowMaker: the desktop shell process and the session type are job
++    # settings (defaults plasmashell and wayland).
++    my $shell = _process_setting('BIGLINUX_DESKTOP_SHELL', 'plasmashell');
++    my $session_type = _process_setting('BIGLINUX_SESSION_TYPE', 'wayland');
+     my $desktop_exit_code =
+-      atspi->run_command_until('pgrep -u 1000 -x plasmashell >/dev/null 2>&1', 45);
+-    die 'The installed KDE Plasma shell did not start'
++      atspi->run_command_until("pgrep -u 1000 -x $shell >/dev/null 2>&1", 45);
++    die "The installed desktop shell ($shell) did not start"
+       unless defined $desktop_exit_code && $desktop_exit_code == 0;
+ 
+     # What the user actually got: a graphical session of their own, active and
+@@ -147,13 +155,22 @@ sub assert_desktop {
+ 
+     my $session_type_exit_code = atspi->run_command_until(
+         "loginctl show-session \$(loginctl show-user $user -p Display --value)"
+-          . ' -p Type | grep -q Type=wayland', 45);
+-    die 'The installed session is not a Wayland session'
++          . " -p Type | grep -q Type=$session_type", 45);
++    die "The installed session is not a $session_type session"
+       unless defined $session_type_exit_code && $session_type_exit_code == 0;
+ 
+     record_info 'Installed desktop',
+-      'AT-SPI is active, plasmashell is running and the user owns an active Wayland session';
+-    orca->start;
++      "AT-SPI is active, $shell is running and the user owns an active $session_type session";
++    orca->start if get_var('BIGLINUX_ORCA', 1);
++}
++
++# Big WindowMaker: a process name from a job setting, checked before it is
++# typed into the guest shell.
++sub _process_setting {
++    my ($name, $default) = @_;
++    my $value = get_var($name, $default);
++    die "invalid $name: $value" unless $value =~ /\A[A-Za-z0-9][A-Za-z0-9._-]{0,63}\z/;
++    return $value;
+ }
+ 
+ 

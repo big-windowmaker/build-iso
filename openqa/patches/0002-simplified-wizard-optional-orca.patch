@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ruscher <rruscher@gmail.com>
+Date: Mon, 26 Oct 2026 01:59:56 -0300
+Subject: [PATCH 2/5] openqa: assistente live simplificado e Orca opcional
+ (BIGLINUX_WIZARD_SIMPLIFIED, BIGLINUX_ORCA)
+
+---
+ openqa/tests/live_desktop.pm | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/openqa/tests/live_desktop.pm b/openqa/tests/live_desktop.pm
+index a321a9d..156bafb 100644
+--- a/openqa/tests/live_desktop.pm
++++ b/openqa/tests/live_desktop.pm
+@@ -22,6 +22,9 @@ my %PAGE = (
+     keyboard => ['Choose Your Keyboard Layout', 'Escolha o layout do teclado'],
+     layout => ['Choose a Desktop Layout', 'Escolha um layout da área de trabalho'],
+     theme => ['Choose a System Theme', 'Escolha um tema do sistema'],
++    # Big WindowMaker: GNOME, XFCE, Cinnamon and Window Maker get the simple
++    # light/dark selector (ThemeView.simplified_mode), titled differently.
++    theme_style => ['Choose a Theme Style', 'Escolha um estilo de tema'],
+ );
+ 
+ # The first-boot wizard, driven through accessibility and the keyboard.
+@@ -94,6 +97,11 @@ sub run {
+     # are. Each Return takes the default and the next page's own table is the
+     # proof it was taken.
+     my @remaining = (['keyboard', 'layout'], ['layout', 'theme'], ['theme', undef]);
++    # Big WindowMaker: the simplified environments have no layout step
++    # (SystemService.has_desktop_layout_step) and a light/dark theme page.
++    if (get_var('BIGLINUX_WIZARD_SIMPLIFIED', 0)) {
++        @remaining = (['keyboard', 'theme_style'], ['theme_style', undef]);
++    }
+     for my $step (@remaining) {
+         my ($current, $next) = @$step;
+         atspi->assert_widget('table', $PAGE{$current}, 60);
+@@ -124,7 +132,9 @@ sub run {
+     # A closed wizard alone is not a ready desktop. This also ensures that
+     # the live-prefix plan observes the same transition as later modules.
+     atspi->reset_baseline;
+-    orca->start;
++    # Big WindowMaker: Orca is opt-out with BIGLINUX_ORCA=0; without it no
++    # speech is required anywhere (calamares->mark_speech checks orca->active).
++    orca->start if get_var('BIGLINUX_ORCA', 1);
+ }
+ 
+ # Failure evidence is read-only and best effort; it never repairs a broken GUI

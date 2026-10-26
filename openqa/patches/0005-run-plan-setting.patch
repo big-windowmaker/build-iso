@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ruscher <rruscher@gmail.com>
+Date: Mon, 26 Oct 2026 01:59:56 -0300
+Subject: [PATCH 5/5] openqa: run-plan.sh aceita --setting KEY=VALUE
+
+---
+ openqa/production/run-plan.sh | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/openqa/production/run-plan.sh b/openqa/production/run-plan.sh
+index bedc31a..284dd86 100755
+--- a/openqa/production/run-plan.sh
++++ b/openqa/production/run-plan.sh
+@@ -29,6 +29,8 @@ Usage: run-plan.sh --plan NAME --iso PATH --results DIR [options]
+   --uefi-code PATH    OVMF code, required by a UEFI plan
+   --uefi-vars PATH    OVMF variable store, required by a UEFI plan
+   --timeout SECONDS   hard limit for the whole plan (default: 7200)
++  --setting KEY=VALUE extra isotovideo setting after the plan's own (repeatable;
++                      Big WindowMaker: local disk limits and the like)
+   --list              print the gate's plans for a CI matrix and exit
+ 
+ The results directory needs room for the guest disk: HDDSIZEGB plus a fifth,
+@@ -53,6 +55,7 @@ uefi_code=
+ uefi_vars=
+ timeout_seconds=7200
+ list=0
++extra_settings=()
+ 
+ while (($# > 0)); do
+     case "$1" in
+@@ -73,6 +76,12 @@ while (($# > 0)); do
+             esac
+             shift 2
+             ;;
++        --setting)
++            (($# >= 2)) || { usage >&2; exit 2; }
++            [[ "$2" =~ ^[A-Z][A-Z0-9_]*=[A-Za-z0-9_.,:/-]*$ ]] || die "invalid --setting: $2"
++            extra_settings+=("$2")
++            shift 2
++            ;;
+         --list)
+             list=1
+             shift
+@@ -284,6 +293,8 @@ fi
+ while IFS= read -r setting; do
+     [[ -n "$setting" ]] && isotovideo_arguments+=("$setting")
+ done <<<"$plan_settings"
++# Big WindowMaker: after the plan's settings, so they take precedence.
++isotovideo_arguments+=("${extra_settings[@]}")
+ 
+ printf 'Running plan %s against %s\n' "$plan" "$iso_name"
+ 

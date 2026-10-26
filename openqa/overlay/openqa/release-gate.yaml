@@ -1,0 +1,66 @@
+# Big WindowMaker: substitui o openqa/release-gate.yaml da BigLinux no harness
+# montado por scripts/install-test.sh. O único leitor continua sendo
+# openqa/production/run-plan.sh da BigLinux (mesmo formato, version: 3).
+#
+# Cada plano é uma execução do isotovideo: um schedule (openqa/main.pm do
+# overlay), uma máquina (formato do QEMU) e as configurações da edição.
+# Aliases YAML são recusados pelo run-plan.sh, por isso as configurações da
+# edição se repetem nas duas máquinas.
+version: 3
+
+machines:
+  bios:
+    QEMUCPUS: '2'
+    QEMURAM: '4096'
+    # 30 GiB bastam para a instalação btrfs (~15 GiB) e cabem no /mnt do
+    # runner do GitHub com a folga que o os-autoinst exige.
+    HDDSIZEGB: '30'
+    XRES: '1024'
+    YRES: '768'
+    # Edição BigCommunity Window Maker (live: perfil wmaker do iso-profiles).
+    BIGLINUX_LIVE_USER: community
+    BIGLINUX_LIVE_PASSWORD: big
+    BIGLINUX_WIZARD_SIMPLIFIED: '1'
+    BIGLINUX_ORCA: '0'
+    BIGLINUX_SESSION_TYPE: x11
+    BIGLINUX_DISPLAY_MANAGER: lightdm
+    BIGLINUX_GREETER: slick-greeter
+    BIGLINUX_DESKTOP_SHELL: wmaker
+
+  uefi:
+    QEMUCPUS: '2'
+    QEMURAM: '4096'
+    HDDSIZEGB: '30'
+    QEMUMACHINE: q35
+    UEFI: '1'
+    UEFI_SECURE_BOOT: '0'
+    XRES: '1024'
+    YRES: '768'
+    BIGLINUX_LIVE_USER: community
+    BIGLINUX_LIVE_PASSWORD: big
+    BIGLINUX_WIZARD_SIMPLIFIED: '1'
+    BIGLINUX_ORCA: '0'
+    BIGLINUX_SESSION_TYPE: x11
+    BIGLINUX_DISPLAY_MANAGER: lightdm
+    BIGLINUX_GREETER: slick-greeter
+    BIGLINUX_DESKTOP_SHELL: wmaker
+
+plans:
+  # Só a sessão live (assistente + Window Maker): primeiro passo numa ISO nova.
+  - name: live
+    gate: false
+    timeout_minutes: 30
+    schedule: bigwm_live
+    machine: bios
+
+  - name: bios
+    gate: true
+    timeout_minutes: 120
+    schedule: bigwm_install
+    machine: bios
+
+  - name: uefi
+    gate: true
+    timeout_minutes: 120
+    schedule: bigwm_install
+    machine: uefi
