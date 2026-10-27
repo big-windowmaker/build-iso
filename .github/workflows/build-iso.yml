@@ -87,6 +87,7 @@ env:
     wmcube pclock wmwifi wmapmload minidock minicontrol mountapp
     qtstep-kvantum onestepback-gtk-theme retrothemes-firefox
     big-wm-tabbed-dock grub-theme-big-wm plymouth-theme-big-wm
+    wmcalc wmcalclock wmcliphist wmclockmon wmcpufreq wmfsm wmglobe wmgtemp wmmon wmpager wmsun wmtime wmtop wmtz wmweather
   # Imagem usada só para rodar repo-add sem rede (manjarolinux/base, a mesma
   # de big-windowmaker/packages). O Dependabot não atualiza digests usados
   # em `run:`; atualizar à mão.
