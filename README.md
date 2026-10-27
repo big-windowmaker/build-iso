@@ -41,7 +41,7 @@ Entradas do `workflow_dispatch`:
 |---|---|---|
 | `branch` | `testing`, `stable` (repositórios BigCommunity/BigLinux) | `testing` |
 | `kernel` | `lts`, `oldlts`, `latest`, `big` (seletores do motor) | `lts` |
-| `profiles_ref` | branch, tag ou SHA de `big-windowmaker/iso-profiles` | `wmaker-edition` |
+| `profiles_ref` | branch, tag ou SHA de `big-windowmaker/iso-profiles` | `main` |
 | `require_livecd_patch` | reprovar se o `biglinux-livecd` não tiver o patch | `true` |
 | `publish` | publicar como pre-release | `false` |
 
@@ -216,7 +216,7 @@ Pela aba *Actions* → *Build ISO* → *Run workflow*, ou:
 
 ```bash
 gh workflow run build-iso.yml -R big-windowmaker/build-iso \
-  -f branch=testing -f kernel=lts -f profiles_ref=wmaker-edition \
+  -f branch=testing -f kernel=lts -f profiles_ref=main \
   -f require_livecd_patch=true -f publish=false
 ```
 
@@ -244,7 +244,7 @@ horas.
 Conforme o relatório 04 (seções 4 e 7) e a ADR-0001 (D5):
 
 **Fase 1 (agora).** A edição `bigcommunity/wmaker` vive no fork
-`big-windowmaker/iso-profiles` (branch `wmaker-edition`) até ser aceita em
+`big-windowmaker/iso-profiles` (branch `main`) até ser aceita em
 `big-comm/iso-profiles`; os pacotes genéricos devem ir para os repositórios
 `community-*`, assinados pela BigCommunity. Enquanto isso não acontece, este
 repositório gera **apenas ISOs de teste** com o repositório local não

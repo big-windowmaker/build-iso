@@ -36,7 +36,7 @@ on:
       profiles_ref:
         description: "Ref (branch, tag ou SHA) de big-windowmaker/iso-profiles"
         type: string
-        default: wmaker-edition
+        default: main
       require_livecd_patch:
         description: "Reprovar o smoke test se o biglinux-livecd não tiver o patch do Window Maker"
         type: boolean
@@ -117,7 +117,7 @@ jobs:
           # No agendamento as entradas chegam vazias: valores padrão.
           branch=${IN_BRANCH:-stable}
           kernel=${IN_KERNEL:-lts}
-          ref=${IN_PROFILES_REF:-wmaker-edition}
+          ref=${IN_PROFILES_REF:-main}
           require=${IN_REQUIRE_PATCH:-true}
           [[ "$branch" =~ ^(testing|stable)$ ]] || { echo "branch inválido: $branch" >&2; exit 1; }
           [[ "$kernel" =~ ^(lts|oldlts|latest|big)$ ]] || { echo "kernel inválido: $kernel" >&2; exit 1; }
