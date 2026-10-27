@@ -79,6 +79,7 @@ env:
     big-windowmaker/packages  build.yml  packages-qtstep-kvantum
     big-windowmaker/packages  build.yml  packages-onestepback-gtk-theme
     big-windowmaker/packages  build.yml  packages-retrothemes-firefox
+    big-windowmaker/packages  build.yml  packages-wdm
   # Pacotes que precisam sair do repositório local e estar na ISO.
   EXPECTED_PACKAGES: >-
     big-wm-session big-wm-wayland big-wm-themes windowmaker wlmaker
@@ -86,7 +87,7 @@ env:
     wmclock wmmemload wmsystemtray biglinux-livecd gtk-nocsd
     wmcube pclock wmwifi wmapmload minidock minicontrol mountapp
     qtstep-kvantum onestepback-gtk-theme retrothemes-firefox
-    big-wm-tabbed-dock grub-theme-big-wm plymouth-theme-big-wm
+    big-wm-tabbed-dock grub-theme-big-wm plymouth-theme-big-wm wdm
     wmcalc wmcalclock wmcliphist wmclockmon wmcpufreq wmfsm wmglobe wmgtemp wmmon wmpager wmsun wmtime wmtop wmtz wmweather
   # Imagem usada só para rodar repo-add sem rede (manjarolinux/base, a mesma
   # de big-windowmaker/packages). O Dependabot não atualiza digests usados

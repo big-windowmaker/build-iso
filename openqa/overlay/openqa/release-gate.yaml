@@ -23,8 +23,9 @@ machines:
     BIGLINUX_WIZARD_SIMPLIFIED: '1'
     BIGLINUX_ORCA: '0'
     BIGLINUX_SESSION_TYPE: x11
-    BIGLINUX_DISPLAY_MANAGER: lightdm
-    BIGLINUX_GREETER: slick-greeter
+    # Sistema instalado: wdm (o LightDM fica só no live).
+    BIGLINUX_DISPLAY_MANAGER: wdm
+    BIGLINUX_GREETER: wdmLogin
     BIGLINUX_DESKTOP_SHELL: wmaker
 
   uefi:
@@ -41,8 +42,9 @@ machines:
     BIGLINUX_WIZARD_SIMPLIFIED: '1'
     BIGLINUX_ORCA: '0'
     BIGLINUX_SESSION_TYPE: x11
-    BIGLINUX_DISPLAY_MANAGER: lightdm
-    BIGLINUX_GREETER: slick-greeter
+    # Sistema instalado: wdm (o LightDM fica só no live).
+    BIGLINUX_DISPLAY_MANAGER: wdm
+    BIGLINUX_GREETER: wdmLogin
     BIGLINUX_DESKTOP_SHELL: wmaker
 
 plans:

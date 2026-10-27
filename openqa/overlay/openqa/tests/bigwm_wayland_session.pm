@@ -3,8 +3,10 @@
 # Big WindowMaker: sessão Wayland (big-wm-wayland, wlmaker) no sistema
 # instalado, no backend DRM real da VM (sem GPU: renderizador por software).
 #
-# Só para o teste: um drop-in do LightDM faz o login automático do usuário
-# de teste na sessão big-wm-wayland e o sistema reinicia. Confere que o
+# Só para o teste, a sessão big-wm-wayland é escolhida e o sistema reinicia:
+# com o wdm (tela de login do sistema instalado), gravando-a como a sessão
+# lembrada do usuário (/var/lib/wdm/sessions/<usuário>) e entrando pelo
+# teclado; com o LightDM, por um drop-in de login automático. Confere que o
 # wlmaker roda como o usuário, que o socket WAYLAND_DISPLAY existe, que o
 # Xwayland subiu e que o logind vê uma sessão Wayland; guarda captura de tela,
 # log do LightDM, ~/.xsession-errors e o journal.
@@ -19,6 +21,7 @@ use Mojo::Base 'basetest';
 use testapi;
 use atspi;
 use biglinux;
+use installed_system;
 
 sub test_flags {
     return {fatal => 0};
@@ -43,6 +46,15 @@ sub reboot_and_login {
     reset_consoles;
     select_console 'user-virtio-terminal';
     select_console 'sut';
+    # wdm: sem login automático; entra pelo teclado (Enter aceita o usuário
+    # lembrado, a sessão lembrada é a big-wm-wayland).
+    if (get_var('BIGLINUX_DISPLAY_MANAGER', '') eq 'wdm') {
+        installed_system->assert_greeter;
+        send_key 'ret';
+        sleep 2;
+        type_password(installed_system->test_password);
+        send_key 'ret';
+    }
 }
 
 # Devolve um hash com o que a sessão Wayland do usuário apresenta.
@@ -79,6 +91,7 @@ sub probe {
           . 'echo "### coredumpctl list"; sudo -n coredumpctl list --no-pager 2>&1; '
           . 'echo "### ~/.xsession-errors"; tail -n 200 ~/.xsession-errors 2>&1; '
           . 'echo "### lightdm.log"; sudo -n tail -n 200 /var/log/lightdm/lightdm.log 2>&1; '
+          . 'echo "### wdm"; sudo -n journalctl -b -u wdm --no-pager 2>&1 | tail -n 100; '
           . 'echo "### journalctl -b (lightdm, wlmaker, startbigwm, Xwayland, coredump)"; '
           . 'sudo -n journalctl -b --no-pager 2>&1 | grep -Ei "lightdm|wlmaker|startbigwm|xwayland|wlroots|coredump|segfault" | tail -n 300; '
           . "} >$evidence 2>&1", 120);
@@ -96,13 +109,20 @@ sub run {
     my $user = get_var('BIGLINUX_TEST_USER', 'openqa');
     die "usuário inválido: $user" unless $user =~ /\A[a-z_][a-z0-9_-]{0,31}\z/;
 
-    # O PAM do LightDM só aceita login automático de quem está no grupo
-    # autologin (pam_succeed_if); o Calamares não o põe lá (doAutologin: false).
-    as_root("groupadd -rf autologin && gpasswd -a $user autologin >/dev/null && "
-          . 'mkdir -p /etc/lightdm/lightdm.conf.d && '
-          . 'printf "%s\n" "# openQA (teste): login automático na sessão Wayland" "[Seat:*]" '
-          . "\"autologin-user=$user\" \"autologin-session=big-wm-wayland\" "
-          . '>/etc/lightdm/lightdm.conf.d/99-openqa-wayland.conf');
+    if (get_var('BIGLINUX_DISPLAY_MANAGER', '') eq 'wdm') {
+        # Sessão lembrada do usuário no wdm (o formato que o wdm grava).
+        as_root('mkdir -p /var/lib/wdm/sessions && '
+              . "printf \"wayland/big-wm-wayland\\n\" >/var/lib/wdm/sessions/$user");
+    }
+    else {
+        # O PAM do LightDM só aceita login automático de quem está no grupo
+        # autologin (pam_succeed_if); o Calamares não o põe lá (doAutologin: false).
+        as_root("groupadd -rf autologin && gpasswd -a $user autologin >/dev/null && "
+              . 'mkdir -p /etc/lightdm/lightdm.conf.d && '
+              . 'printf "%s\n" "# openQA (teste): login automático na sessão Wayland" "[Seat:*]" '
+              . "\"autologin-user=$user\" \"autologin-session=big-wm-wayland\" "
+              . '>/etc/lightdm/lightdm.conf.d/99-openqa-wayland.conf');
+    }
     reboot_and_login;
     my $default = probe('padrao');
     if (ok_session($default)) {
