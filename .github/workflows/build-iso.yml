@@ -56,6 +56,14 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  # Servidores dos repositórios BigLinux e BigCommunity (o motor lê as duas
+  # variáveis; o sistema instalado também). Trocáveis sem mexer no workflow:
+  # gh variable set BIGLINUX_REPO_HOST|COMMUNITY_REPO_HOST -R big-windowmaker/build-iso.
+  # Em 2026-10-28 a Cloudflare na frente dos dois passou a responder aos
+  # runners com o desafio de JavaScript (403, cf-mitigated: challenge), que o
+  # pacman não resolve; ver o workflow diagnose-repos.yml.
+  BIGLINUX_REPO_HOST: ${{ vars.BIGLINUX_REPO_HOST || 'packages.biglinux.com.br' }}
+  COMMUNITY_REPO_HOST: ${{ vars.COMMUNITY_REPO_HOST || 'repo.communitybig.org' }}
   # Motor de ISO da BigLinux, fixado por commit. Para atualizar:
   #   gh api repos/biglinux/iso-profiles/commits/main --jq .sha
   # e revisar o diff de build-iso/ antes de trocar.
@@ -286,6 +294,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/edition"
           cp -L "$edition"/Packages-{Root,Desktop,Live} "$RUNNER_TEMP/edition/"
           docker run --rm \
+            -e BIGLINUX_REPO_HOST -e COMMUNITY_REPO_HOST \
             -v "$GITHUB_WORKSPACE/ci/scripts:/scripts:ro" \
             -v "$RUNNER_TEMP/edition:/edition:ro" \
             -v "$RUNNER_TEMP/bigwm-local:/srv/bigwm-local:ro" \
@@ -363,16 +372,16 @@ jobs:
         run: |
           set -euo pipefail
           urls=(
-            https://packages.biglinux.com.br/biglinux-priority/x86_64/biglinux-priority.db
-            https://repo.communitybig.org/community-stable/x86_64/community-stable.db
-            https://repo.communitybig.org/community-extra/x86_64/community-extra.db
-            https://packages.biglinux.com.br/biglinux-stable/x86_64/biglinux-stable.db
-            https://packages.biglinux.com.br/biglinux-extra/x86_64/biglinux-extra.db
+            https://$BIGLINUX_REPO_HOST/biglinux-priority/x86_64/biglinux-priority.db
+            https://$COMMUNITY_REPO_HOST/community-stable/x86_64/community-stable.db
+            https://$COMMUNITY_REPO_HOST/community-extra/x86_64/community-extra.db
+            https://$BIGLINUX_REPO_HOST/biglinux-stable/x86_64/biglinux-stable.db
+            https://$BIGLINUX_REPO_HOST/biglinux-extra/x86_64/biglinux-extra.db
           )
           if [[ "$BIG_BRANCH" == testing ]]; then
             urls+=(
-              https://repo.communitybig.org/community-testing/x86_64/community-testing.db
-              https://packages.biglinux.com.br/biglinux-testing/x86_64/biglinux-testing.db
+              https://$COMMUNITY_REPO_HOST/community-testing/x86_64/community-testing.db
+              https://$BIGLINUX_REPO_HOST/biglinux-testing/x86_64/biglinux-testing.db
             )
           fi
           for url in "${urls[@]}"; do

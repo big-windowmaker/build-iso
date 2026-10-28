@@ -26,8 +26,8 @@ for list in Packages-Root Packages-Desktop Packages-Live; do
     [[ -r $edition/$list ]] || die "lista ausente: $edition/$list"
 done
 
-biglinux_host=packages.biglinux.com.br
-community_host=repo.communitybig.org
+biglinux_host=${BIGLINUX_REPO_HOST:-packages.biglinux.com.br}
+community_host=${COMMUNITY_REPO_HOST:-repo.communitybig.org}
 
 pacman-mirrors --api --set-branch "$branch" >/dev/null
 

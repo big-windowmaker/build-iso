@@ -13,6 +13,10 @@ on:
 
 permissions: {}
 
+env:
+  BIGLINUX_REPO_HOST: ${{ vars.BIGLINUX_REPO_HOST || 'packages.biglinux.com.br' }}
+  COMMUNITY_REPO_HOST: ${{ vars.COMMUNITY_REPO_HOST || 'repo.communitybig.org' }}
+
 jobs:
   diagnose:
     runs-on: ubuntu-24.04
@@ -24,11 +28,11 @@ jobs:
         run: |
           set -u
           urls=(
-            https://repo.communitybig.org/community-stable/x86_64/community-stable.db
-            https://repo.communitybig.org/community-extra/x86_64/community-extra.db
-            https://repo.communitybig.org/community-testing/x86_64/community-testing.db
-            https://repo.communitybig.org/stable/x86_64/community-stable.db
-            https://packages.biglinux.com.br/biglinux-stable/x86_64/biglinux-stable.db
+            https://$COMMUNITY_REPO_HOST/community-stable/x86_64/community-stable.db
+            https://$COMMUNITY_REPO_HOST/community-extra/x86_64/community-extra.db
+            https://$COMMUNITY_REPO_HOST/community-testing/x86_64/community-testing.db
+            https://$BIGLINUX_REPO_HOST/biglinux-stable/x86_64/biglinux-stable.db
+            https://$BIGLINUX_REPO_HOST/biglinux-priority/x86_64/biglinux-priority.db
           )
           agents=("curl/8" "pacman/7.0.0 (Linux x86_64) libalpm/15.0.0")
           for url in "${urls[@]}"; do
