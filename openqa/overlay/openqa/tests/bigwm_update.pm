@@ -31,7 +31,14 @@ sub run {
     my $log = '/tmp/openqa-bigwm-update.txt';
     my %result;
 
-    $result{sincronizar} = as_root("pacman -Syu --noconfirm >$log 2>&1", 2400);
+    # O sistema instalado precisa dos repositórios da BigCommunity e da
+    # BigLinux (a edição já saiu só com [biglinux-priority] e os da Manjaro:
+    # sem atualizações nem programas deles no pamac).
+    $result{repositorios} = as_root(
+        "pacman-conf --repo-list >$log 2>&1; "
+          . 'for r in biglinux-priority community-stable community-extra biglinux-stable biglinux-extra; do '
+          . "grep -qx \"\$r\" $log || exit 1; done", 60);
+    $result{sincronizar} = as_root("pacman -Syu --noconfirm >>$log 2>&1", 2400);
     $result{instalar} = as_root("pacman -S --noconfirm xorg-xeyes >>$log 2>&1", 600);
     $result{remover} = as_root("pacman -Rns --noconfirm xorg-xeyes >>$log 2>&1", 300);
     # pacman -Qkk dos pacotes do Big WindowMaker. Alterações em

@@ -45,7 +45,7 @@ local_repo="${BIGWM_LOCAL_REPO:?BIGWM_LOCAL_REPO não definido}"
 source "$engine"
 
 # O motor foi carregado com set -euo pipefail e define msg/die.
-for fn in main run_build configure_build_repos prepare_host; do
+for fn in main run_build configure_build_repos configure_profile prepare_host; do
     declare -F "$fn" >/dev/null || die "o motor não define $fn(): versão incompatível com run-engine.sh"
 done
 
@@ -57,7 +57,48 @@ order=$(grep -o -E '\b(prepare_host|configure_build_repos|run_build)\b' <<<"$mai
 [[ "$order" == "prepare_host configure_build_repos run_build" ]] \
     || die "ordem inesperada das etapas em main() do motor: '$order'"
 
+# configure_profile (embrulhado abaixo) precisa vir antes de run_build.
+order=$(grep -o -E '\b(configure_profile|run_build)\b' <<<"$main_body" | paste -sd' ' -)
+[[ "$order" == "configure_profile run_build" ]] \
+    || die "ordem inesperada de configure_profile/run_build em main() do motor: '$order'"
+
 eval "bigwm_engine_$(declare -f run_build)"
+
+# O motor grava os repositórios do sistema instalado (community-*, biglinux-*
+# e o ramo) em shared/pacman.conf, que as edições usam por link. A edição
+# wmaker tem um pacman.conf próprio (IgnorePkg = windowmaker, ver o arquivo),
+# que o motor não conhece: o sistema instalado saía só com [biglinux-priority]
+# e os repositórios da Manjaro, sem BigCommunity nem BigLinux (pamac sem
+# atualizações nem programas deles). Depois da etapa do motor, o arquivo da
+# edição é refeito a partir do shared/pacman.conf final, com as linhas
+# IgnorePkg ativas da edição no [options].
+eval "bigwm_engine_$(declare -f configure_profile)"
+
+configure_profile() {
+    bigwm_engine_configure_profile "$@"
+    local shared="$PROFILES_ROOT/shared/pacman.conf"
+    local own="$PROFILES_ROOT/$DISTRONAME/$EDITION/root-overlay/etc/pacman.conf"
+    [[ -f "$own" && ! -L "$own" && -f "$shared" ]] || return 0
+    msg "big-windowmaker: repositórios do shared/pacman.conf no pacman.conf da edição"
+    local ignore merged
+    ignore=$(grep -E '^[[:space:]]*IgnorePkg[[:space:]]*=' "$own" || true)
+    merged=$(mktemp)
+    awk -v ignore="$ignore" '
+        /^\[options\]/ { opts = 1 }
+        opts && !done && (/^#?IgnorePkg/ || /^\[/ && !/^\[options\]/) {
+            if (ignore != "") print ignore
+            done = 1
+        }
+        /^\[/ && !/^\[options\]/ { opts = 0 }
+        { print }' "$shared" >"$merged"
+    cat "$merged" >"$own"
+    rm -f "$merged"
+    local section
+    for section in community-stable community-extra biglinux-stable biglinux-extra; do
+        assert_present "^\\[$section\\]" "$own"
+    done
+    [[ -z "$ignore" ]] || assert_present '^[[:space:]]*IgnorePkg[[:space:]]*=' "$own"
+}
 
 run_build() {
     msg "big-windowmaker: injetando [bigwm-local] nas configurações do buildiso"
