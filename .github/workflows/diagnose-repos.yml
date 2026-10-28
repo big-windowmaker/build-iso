@@ -1,0 +1,48 @@
+# Diagnóstico dos repositórios vistos de um runner do GitHub.
+#
+# Os repositórios da BigCommunity passam pela Cloudflare, que em 2026-10-28
+# começou a responder 403 aos runners (IPs de datacenter) e 200 a conexões
+# residenciais. Este workflow mostra o que a Cloudflare devolve daqui
+# (status, cabeçalhos cf-*, código de erro no corpo), com e sem o
+# user-agent do pacman, para saber qual proteção barra e conferir a regra
+# que a libera.
+name: Diagnóstico dos repositórios
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: IP de saída do runner
+        run: curl -fsS --max-time 20 https://api.ipify.org && echo
+      - name: Respostas dos repositórios
+        run: |
+          set -u
+          urls=(
+            https://repo.communitybig.org/community-stable/x86_64/community-stable.db
+            https://repo.communitybig.org/community-extra/x86_64/community-extra.db
+            https://repo.communitybig.org/community-testing/x86_64/community-testing.db
+            https://repo.communitybig.org/stable/x86_64/community-stable.db
+            https://packages.biglinux.com.br/biglinux-stable/x86_64/biglinux-stable.db
+          )
+          agents=("curl/8" "pacman/7.0.0 (Linux x86_64) libalpm/15.0.0")
+          for url in "${urls[@]}"; do
+            for ua in "${agents[@]}"; do
+              echo "::group::$url  [UA: $ua]"
+              curl -sS --max-time 30 -A "$ua" -D headers.txt -o body.bin "$url" \
+                -w 'status=%{http_code} bytes=%{size_download} tempo=%{time_total}s\n' || true
+              grep -iE '^(HTTP|server|cf-ray|cf-mitigated|cf-cache-status|content-type|x-served-by)' headers.txt || true
+              if ! grep -qi 'octet-stream' headers.txt; then
+                # Página de erro da Cloudflare: título e código (1020, 1010, 1006...).
+                grep -oiE '<title>[^<]*</title>|error code:? *[0-9]{4}|Error [0-9]{4}|cf-error-code[^<]{0,40}|Sorry, you have been blocked|Just a moment|challenge-platform' body.bin \
+                  | sort -u | head -10 || true
+                head -c 400 body.bin | tr -c '[:print:]\n' '.'; echo
+              fi
+              echo "::endgroup::"
+            done
+          done
