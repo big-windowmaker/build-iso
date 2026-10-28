@@ -100,7 +100,7 @@ quando as variáveis não são definidas.
 |---|---|
 | `overlay/openqa/main.pm` | Substitui o `main.pm`: schedules `bigwm_live`, `bigwm_install` e `generic_install` (outras edições, sem os módulos `bigwm_*`). Fora: `applications`, `installed_reader`, `installed_critical_apps`, `nonvisual_tasks`, `installed_brave` (dependem do Plasma/política KDE ou do Orca). |
 | `overlay/openqa/release-gate.yaml` | Substitui o `release-gate.yaml`: planos `live`, `bios` e `uefi`, disco de 30 GiB e as configurações da edição acima. |
-| `overlay/openqa/lib/bigwm.pm` | Verificações da sessão Window Maker. |
+| `overlay/openqa/lib/bigwm.pm` | Verificações da sessão Window Maker e dos dockapps obrigatórios; o `wmix` só é exigido quando o mixer de áudio do convidado expõe controles. |
 | `overlay/openqa/tests/bigwm_live_session.pm`, `bigwm_installed_session.pm` | Módulos da sessão live e da instalada. |
 | `overlay/openqa/tests/bigwm_metrics.pm`, `bigwm_update.pm`, `bigwm_wayland_session.pm` | Métricas, atualização do sistema instalado e sessão Wayland. |
 | `scripts/vm-metrics.sh` (copiado para `data/`) | Coleta de métricas, a mesma do smoke test. |

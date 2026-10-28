@@ -13,10 +13,11 @@ use testapi;
 use atspi;
 use guest_shell qw(marker_format shell_quote);
 
-# Dockapps com AutoLaunch = YES no WMState padrão (big-wm,
+# Dockapps obrigatórios com AutoLaunch = YES no WMState padrão (big-wm,
 # data/GNUstep/Defaults/WMState). O relógio é o wmclock iniciado por
-# big-wm-clock.
-our @DOCKAPPS = qw(wmclock wmsystemtray wmix wmcpuload wmmemload wmnet);
+# big-wm-clock. O wmix é verificado separadamente porque só funciona quando
+# o convidado expõe algum controle de áudio.
+our @DOCKAPPS = qw(wmclock wmsystemtray wmcpuload wmmemload wmnet);
 
 # Lê uma linha "chave=valor;..." impressa pelo convidado. O marcador é
 # impresso com printf e escapes octais, então o eco do comando digitado não
@@ -38,7 +39,7 @@ sub _probe {
 #   - wmaker do usuário em execução, iniciado pelo wrapper startbigwm
 #     (sessão big-wm, não o wmaker.desktop genérico);
 #   - big-wm-session.target e graphical-session.target ativos no systemd --user;
-#   - cada dockapp padrão em execução;
+#   - cada dockapp obrigatório em execução e, quando há mixer de áudio, o wmix;
 #   - XDG_CURRENT_DESKTOP=WindowMaker no ambiente do systemd --user.
 # $context aparece nas mensagens ("live" ou "instalado").
 sub assert_session {
@@ -56,6 +57,12 @@ sub assert_session {
       'bwm_out="$bwm_out;target=$(systemctl --user is-active big-wm-session.target 2>/dev/null)";',
       'bwm_out="$bwm_out;graphical=$(systemctl --user is-active graphical-session.target 2>/dev/null)";',
       'bwm_out="$bwm_out;desktop=$(systemctl --user show-environment 2>/dev/null | sed -n s/^XDG_CURRENT_DESKTOP=//p)";',
+      'bwm_out="$bwm_out;wmix=$(bwm_yes pgrep -u "$bwm_uid" -x wmix)";',
+      # O dispositivo HDA virtual pode aparecer sem controles em alguns boots
+      # UEFI. Nessa condição não há um mixer utilizável para o wmix.
+      'if command -v amixer >/dev/null 2>&1 && timeout 5 amixer -D default scontrols 2>/dev/null | grep -q .; then bwm_audio=ready; else bwm_audio=unavailable; fi;',
+      'if [ "$bwm_audio" = ready ]; then bwm_i=0; while [ $bwm_i -lt 20 ] && ! pgrep -u "$bwm_uid" -x wmix >/dev/null; do sleep 0.5; bwm_i=$((bwm_i+1)); done; fi;',
+      'bwm_out="$bwm_out;audio=$bwm_audio";',
       'bwm_missing=; for bwm_app in ' . $dockapps . '; do pgrep -u "$bwm_uid" -x "$bwm_app" >/dev/null || bwm_missing="$bwm_missing,$bwm_app"; done;',
       'bwm_out="$bwm_out;missing=${bwm_missing#,}";',
       # Evidência para o relatório: processos gráficos do usuário.
@@ -77,6 +84,10 @@ sub assert_session {
       unless ($result->{desktop} // '') eq 'WindowMaker';
     die "Window Maker ($context): dockapps ausentes: $result->{missing}"
       if length($result->{missing} // '');
+    die "Window Maker ($context): wmix ausente embora o mixer de áudio esteja disponível"
+      if ($result->{audio} // '') eq 'ready' && ($result->{wmix} // 0) != 1;
+    record_info 'wmix condicional', 'Sem controles no mixer de áudio; o wmix não é aplicável neste boot'
+      if ($result->{audio} // '') eq 'unavailable' && ($result->{wmix} // 0) != 1;
     return $result;
 }
 
