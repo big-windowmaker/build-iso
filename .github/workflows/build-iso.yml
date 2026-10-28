@@ -353,6 +353,41 @@ jobs:
           name: bigwm-local-${{ github.run_id }}
           path: /srv/bigwm-local
 
+      # Uma queda passageira de um repositório (repo.communitybig.org parou de
+      # responder no meio do pacman -Sy do rootfs: "Operation too slow") derrubava
+      # o build inteiro. Antes de começar, espera cada base de dados responder,
+      # com novas tentativas; se continuar fora, falha aqui, em minutos.
+      - name: Conferir os repositórios do build
+        env:
+          BIG_BRANCH: ${{ needs.lint.outputs.branch }}
+        run: |
+          set -euo pipefail
+          urls=(
+            https://packages.biglinux.com.br/biglinux-priority/x86_64/biglinux-priority.db
+            https://repo.communitybig.org/community-stable/x86_64/community-stable.db
+            https://repo.communitybig.org/community-extra/x86_64/community-extra.db
+            https://packages.biglinux.com.br/biglinux-stable/x86_64/biglinux-stable.db
+            https://packages.biglinux.com.br/biglinux-extra/x86_64/biglinux-extra.db
+          )
+          if [[ "$BIG_BRANCH" == testing ]]; then
+            urls+=(
+              https://repo.communitybig.org/community-testing/x86_64/community-testing.db
+              https://packages.biglinux.com.br/biglinux-testing/x86_64/biglinux-testing.db
+            )
+          fi
+          for url in "${urls[@]}"; do
+            for attempt in 1 2 3 4 5 6 7 8 9 10; do
+              if curl -fsS -o /dev/null --max-time 60 --speed-limit 1024 --speed-time 15 "$url"; then
+                echo "ok: $url"
+                continue 2
+              fi
+              echo "::warning::$url não respondeu (tentativa $attempt de 10)"
+              sleep $((attempt * 15))
+            done
+            echo "::error::repositório fora do ar: $url"
+            exit 1
+          done
+
       - name: Construir a ISO (motor da BigLinux + [bigwm-local])
         env:
           KERNEL: ${{ needs.lint.outputs.kernel }}
