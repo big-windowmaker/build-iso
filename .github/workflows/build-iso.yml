@@ -24,10 +24,13 @@ on:
   workflow_dispatch:
     inputs:
       branch:
+        # testing: community-testing/stable/extra e biglinux-testing/stable/extra,
+        # no build e no pacman.conf do sistema instalado (os mesmos repositórios,
+        # na mesma ordem, do big-comm/build-package). stable: sem os *-testing.
         description: "Branch BigCommunity/BigLinux dos pacotes"
         type: choice
-        default: stable
-        options: [stable, testing]
+        default: testing
+        options: [testing, stable]
       kernel:
         description: "Kernel (seletor do motor da BigLinux)"
         type: choice
@@ -46,22 +49,25 @@ on:
         type: boolean
         default: false
   schedule:
-    # Semanal (segunda-feira, 05:17 UTC): ISO com os valores padrão (stable).
+    # Semanal (segunda-feira, 05:17 UTC): ISO com os valores padrão (testing).
     - cron: "17 5 * * 1"
 
 permissions: {}
 
 concurrency:
-  group: build-iso-${{ github.ref }}-${{ inputs.branch || 'stable' }}
+  group: build-iso-${{ github.ref }}-${{ inputs.branch || 'testing' }}
   cancel-in-progress: false
 
 env:
   # Servidores dos repositórios BigLinux e BigCommunity (o motor lê as duas
   # variáveis; o sistema instalado também). Trocáveis sem mexer no workflow:
   # gh variable set BIGLINUX_REPO_HOST|COMMUNITY_REPO_HOST -R big-windowmaker/build-iso.
-  # Em 2026-10-28 a Cloudflare na frente dos dois passou a responder aos
-  # runners com o desafio de JavaScript (403, cf-mitigated: challenge), que o
-  # pacman não resolve; ver o workflow diagnose-repos.yml.
+  # Desde 2026-10-28 a Cloudflare na frente do repo.communitybig.org responde
+  # aos runners com o desafio de JavaScript (403, cf-mitigated: challenge)
+  # quando o pedido vem do curl, mesmo com o user-agent do pacman; o pacman
+  # de verdade passa (big-comm/build-package e o job resolve, 2026-11-02).
+  # Por isso os repositórios são conferidos com o pacman; ver também o
+  # workflow diagnose-repos.yml.
   BIGLINUX_REPO_HOST: ${{ vars.BIGLINUX_REPO_HOST || 'packages.biglinux.com.br' }}
   COMMUNITY_REPO_HOST: ${{ vars.COMMUNITY_REPO_HOST || 'repo.communitybig.org' }}
   # Motor de ISO da BigLinux, fixado por commit. Para atualizar:
@@ -125,7 +131,7 @@ jobs:
         run: |
           set -euo pipefail
           # No agendamento as entradas chegam vazias: valores padrão.
-          branch=${IN_BRANCH:-stable}
+          branch=${IN_BRANCH:-testing}
           kernel=${IN_KERNEL:-lts}
           ref=${IN_PROFILES_REF:-main}
           require=${IN_REQUIRE_PATCH:-true}
@@ -366,36 +372,43 @@ jobs:
       # responder no meio do pacman -Sy do rootfs: "Operation too slow") derrubava
       # o build inteiro. Antes de começar, espera cada base de dados responder,
       # com novas tentativas; se continuar fora, falha aqui, em minutos.
+      #
+      # Com o pacman, não com o curl: o motor baixa tudo pelo pacman, e a
+      # Cloudflare do repo.communitybig.org desafia (403) o curl dos runners
+      # mas deixa o pacman passar. Banco local vazio e só -Sy: nada é
+      # instalado; as assinaturas o motor confere (SigLevel = PackageRequired).
       - name: Conferir os repositórios do build
         env:
           BIG_BRANCH: ${{ needs.lint.outputs.branch }}
         run: |
           set -euo pipefail
-          urls=(
-            https://$BIGLINUX_REPO_HOST/biglinux-priority/x86_64/biglinux-priority.db
-            https://$COMMUNITY_REPO_HOST/community-stable/x86_64/community-stable.db
-            https://$COMMUNITY_REPO_HOST/community-extra/x86_64/community-extra.db
-            https://$BIGLINUX_REPO_HOST/biglinux-stable/x86_64/biglinux-stable.db
-            https://$BIGLINUX_REPO_HOST/biglinux-extra/x86_64/biglinux-extra.db
-          )
-          if [[ "$BIG_BRANCH" == testing ]]; then
-            urls+=(
-              https://$COMMUNITY_REPO_HOST/community-testing/x86_64/community-testing.db
-              https://$BIGLINUX_REPO_HOST/biglinux-testing/x86_64/biglinux-testing.db
-            )
-          fi
-          for url in "${urls[@]}"; do
-            for attempt in 1 2 3 4 5 6 7 8 9 10; do
-              if curl -fsS -o /dev/null --max-time 60 --speed-limit 1024 --speed-time 15 "$url"; then
-                echo "ok: $url"
-                continue 2
-              fi
-              echo "::warning::$url não respondeu (tentativa $attempt de 10)"
-              sleep $((attempt * 15))
-            done
-            echo "::error::repositório fora do ar: $url"
-            exit 1
+          section() { # nome, servidor
+            printf '\n[%s]\nServer = https://%s/$repo/$arch\n' "$1" "$2"
+          }
+          conf=$(mktemp)
+          dbpath=$(mktemp -d)
+          # Mesma ordem do motor (append_build_repos).
+          {
+            printf '[options]\nArchitecture = auto\nSigLevel = Never\n'
+            section biglinux-priority "$BIGLINUX_REPO_HOST"
+            [[ "$BIG_BRANCH" == testing ]] && section community-testing "$COMMUNITY_REPO_HOST"
+            section community-stable "$COMMUNITY_REPO_HOST"
+            section community-extra "$COMMUNITY_REPO_HOST"
+            [[ "$BIG_BRANCH" == testing ]] && section biglinux-testing "$BIGLINUX_REPO_HOST"
+            section biglinux-stable "$BIGLINUX_REPO_HOST"
+            section biglinux-extra "$BIGLINUX_REPO_HOST"
+          } >"$conf"
+          grep '^\[' "$conf" | grep -v options
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if pacman --config "$conf" --dbpath "$dbpath" --logfile "$dbpath/pacman.log" -Sy --noconfirm; then
+              ls -l "$dbpath/sync"
+              exit 0
+            fi
+            echo "::warning::repositórios não responderam ao pacman (tentativa $attempt de 10)"
+            sleep $((attempt * 15))
           done
+          echo "::error::repositório fora do ar (pacman -Sy falhou 10 vezes)"
+          exit 1
 
       - name: Construir a ISO (motor da BigLinux + [bigwm-local])
         env:
