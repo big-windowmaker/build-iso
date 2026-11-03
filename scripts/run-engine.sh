@@ -45,7 +45,7 @@ local_repo="${BIGWM_LOCAL_REPO:?BIGWM_LOCAL_REPO não definido}"
 source "$engine"
 
 # O motor foi carregado com set -euo pipefail e define msg/die.
-for fn in main run_build configure_build_repos configure_profile prepare_host; do
+for fn in main run_build configure_build_repos configure_profile append_installed_repos prepare_host; do
     declare -F "$fn" >/dev/null || die "o motor não define $fn(): versão incompatível com run-engine.sh"
 done
 
@@ -69,13 +69,34 @@ eval "bigwm_engine_$(declare -f run_build)"
 # wmaker tem um pacman.conf próprio (IgnorePkg = windowmaker, ver o arquivo),
 # que o motor não conhece: o sistema instalado saía só com [biglinux-priority]
 # e os repositórios da Manjaro, sem BigCommunity nem BigLinux (pamac sem
-# atualizações nem programas deles). Depois da etapa do motor, o arquivo da
-# edição é refeito a partir do shared/pacman.conf final, com as linhas
-# IgnorePkg ativas da edição no [options].
+# atualizações nem programas deles). O arquivo da edição é refeito a partir do
+# shared/pacman.conf, com as linhas IgnorePkg ativas da edição no [options].
+#
+# Logo depois de o motor gravar os repositórios no shared/pacman.conf
+# (append_installed_repos), ainda dentro do configure_profile: num build
+# testing o motor chama em seguida o set-biglinux-branch.sh, que exige o
+# [biglinux-stable] no pacman.conf da edição ("no [biglinux-stable] section
+# to insert above", 2026-11-03). E de novo no fim do configure_profile, para
+# levar o que o motor ainda mudar no shared/pacman.conf.
+cp_body=$(declare -f configure_profile)
+order=$(grep -o -E '\b(append_installed_repos|set-biglinux-branch\.sh)\b' <<<"$cp_body" | paste -sd' ' -)
+[[ "$order" == "append_installed_repos set-biglinux-branch.sh" ]] \
+    || die "ordem inesperada de append_installed_repos/set-biglinux-branch.sh em configure_profile() do motor: '$order'"
+
 eval "bigwm_engine_$(declare -f configure_profile)"
+eval "bigwm_engine_$(declare -f append_installed_repos)"
+
+append_installed_repos() {
+    bigwm_engine_append_installed_repos "$@"
+    [[ "$1" != "$PROFILES_ROOT/shared/pacman.conf" ]] || bigwm_edition_pacman_conf
+}
 
 configure_profile() {
     bigwm_engine_configure_profile "$@"
+    bigwm_edition_pacman_conf
+}
+
+bigwm_edition_pacman_conf() {
     local shared="$PROFILES_ROOT/shared/pacman.conf"
     local own="$PROFILES_ROOT/$DISTRONAME/$EDITION/root-overlay/etc/pacman.conf"
     [[ -f "$own" && ! -L "$own" && -f "$shared" ]] || return 0
