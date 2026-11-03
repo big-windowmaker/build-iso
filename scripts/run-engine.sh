@@ -45,7 +45,7 @@ local_repo="${BIGWM_LOCAL_REPO:?BIGWM_LOCAL_REPO não definido}"
 source "$engine"
 
 # O motor foi carregado com set -euo pipefail e define msg/die.
-for fn in main run_build configure_build_repos configure_profile append_installed_repos prepare_host; do
+for fn in main read_inputs collect_output run_build configure_build_repos configure_profile append_installed_repos prepare_host; do
     declare -F "$fn" >/dev/null || die "o motor não define $fn(): versão incompatível com run-engine.sh"
 done
 
@@ -62,7 +62,47 @@ order=$(grep -o -E '\b(configure_profile|run_build)\b' <<<"$main_body" | paste -
 [[ "$order" == "configure_profile run_build" ]] \
     || die "ordem inesperada de configure_profile/run_build em main() do motor: '$order'"
 
+# read_inputs (que define o VOL_ID) antes de tudo; collect_output (que dá
+# nome à ISO) depois do run_build.
+order=$(grep -o -E '\b(read_inputs|configure_profile|run_build|collect_output)\b' <<<"$main_body" | paste -sd' ' -)
+[[ "$order" == "read_inputs configure_profile run_build collect_output" ]] \
+    || die "ordem inesperada de read_inputs/collect_output em main() do motor: '$order'"
+
 eval "bigwm_engine_$(declare -f run_build)"
+
+# O nome da edição na ISO. O motor monta o rótulo do volume e o nome do arquivo
+# a partir do DISTRONAME ("BIGCOMMUNITY_LIVE_WMAKER", "bigcommunity_wmaker_
+# ...iso"), que continua bigcommunity: é a estrutura dos perfis e dos
+# repositórios. O sistema se chama Big WindowMaker, e o rótulo (o nome do
+# pendrive no gerenciador de arquivos) e o arquivo publicado passam a dizer isso.
+#
+# O VOL_ID é a única fonte do rótulo no motor: label do profile.conf, misolabel
+# do kernels.cfg e iso_label do manjaro-tools, todos gravados depois de
+# read_inputs. Trocá-lo logo ali mantém os três iguais, sem o que a live não
+# acharia o próprio pendrive.
+BIGWM_VOL_ID=BIG_WINDOWMAKER_LIVE
+eval "bigwm_engine_$(declare -f read_inputs)"
+read_inputs() {
+    bigwm_engine_read_inputs "$@"
+    # shellcheck disable=SC2034 # lido pelas etapas do motor
+    VOL_ID=$BIGWM_VOL_ID
+}
+
+# bigcommunity_TESTING_wmaker_2026-11-03_k618.iso -> big-windowmaker_TESTING_
+# 2026-11-03_k618.iso (o "wmaker" sobra: a edição já está no nome).
+eval "bigwm_engine_$(declare -f collect_output)"
+collect_output() {
+    bigwm_engine_collect_output "$@"
+    local name=${ISO_BASENAME/#"${DISTRONAME}_"/big-windowmaker_}
+    name=${name/"_${EDITION}_"/_}
+    [[ "$name" != "$ISO_BASENAME" ]] || return 0
+    msg "big-windowmaker: ISO publicada como $name"
+    mv -f "$WORK_PATH/$ISO_BASENAME" "$WORK_PATH/$name"
+    if [[ -e "$WORK_PATH/$ISO_BASENAME.pkgs" ]]; then
+        mv -f "$WORK_PATH/$ISO_BASENAME.pkgs" "$WORK_PATH/$name.pkgs"
+    fi
+    ISO_BASENAME=$name
+}
 
 # O motor grava os repositórios do sistema instalado (community-*, biglinux-*
 # e o ramo) em shared/pacman.conf, que as edições usam por link. A edição

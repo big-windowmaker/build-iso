@@ -45,9 +45,12 @@ Entradas do `workflow_dispatch`:
 | `require_livecd_patch` | reprovar se o `biglinux-livecd` não tiver o patch | `true` |
 | `publish` | publicar como pre-release | `false` |
 
-O Manjaro é sempre `stable`. Nome gerado pelo motor:
-`bigcommunity_TESTING_wmaker_<data>_k<kernel>.iso` (testing) ou
-`bigcommunity_wmaker_<data>_k<kernel>.iso` (stable).
+O Manjaro é sempre `stable`. Nome da ISO:
+`big-windowmaker_TESTING_<data>_k<kernel>.iso` (testing) ou
+`big-windowmaker_<data>_k<kernel>.iso` (stable), com o rótulo de volume
+`BIG_WINDOWMAKER_LIVE`. O motor os monta a partir do `DISTRONAME`
+(`bigcommunity`, a estrutura dos perfis); o `scripts/run-engine.sh` troca o
+nome e o rótulo para os da edição.
 
 ### Fontes dos pacotes (uma variável)
 
@@ -202,8 +205,8 @@ o harness openQA da BigLinux (`biglinux/iso-profiles`, fixado por commit em
 detalhes, lista de módulos e limites em [`openqa/README.md`](openqa/README.md).
 
 ```bash
-scripts/install-test.sh --iso bigcommunity_wmaker_*.iso --plan bios --out /var/tmp/install-bios
-scripts/install-test.sh --iso bigcommunity_wmaker_*.iso --plan uefi --out /var/tmp/install-uefi \
+scripts/install-test.sh --iso big-windowmaker_*.iso --plan bios --out /var/tmp/install-bios
+scripts/install-test.sh --iso big-windowmaker_*.iso --plan uefi --out /var/tmp/install-uefi \
   --ovmf-code /usr/share/edk2/x64/OVMF_CODE.4m.fd --ovmf-vars /usr/share/edk2/x64/OVMF_VARS.4m.fd
 ```
 

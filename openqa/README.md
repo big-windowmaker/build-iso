@@ -113,14 +113,14 @@ Requisitos: `docker` (usuário no grupo `docker`), `/dev/kvm` acessível, `git`,
 
 ```bash
 # BIOS
-scripts/install-test.sh --iso bigcommunity_wmaker_*.iso --plan bios --out /var/tmp/install-bios
+scripts/install-test.sh --iso big-windowmaker_*.iso --plan bios --out /var/tmp/install-bios
 
 # UEFI (OVMF sem Secure Boot; caminhos do Arch/Manjaro)
-scripts/install-test.sh --iso bigcommunity_wmaker_*.iso --plan uefi --out /var/tmp/install-uefi \
+scripts/install-test.sh --iso big-windowmaker_*.iso --plan uefi --out /var/tmp/install-uefi \
   --ovmf-code /usr/share/edk2/x64/OVMF_CODE.4m.fd --ovmf-vars /usr/share/edk2/x64/OVMF_VARS.4m.fd
 
 # Só a sessão live (alguns minutos)
-scripts/install-test.sh --iso bigcommunity_wmaker_*.iso --plan live --out /var/tmp/install-live
+scripts/install-test.sh --iso big-windowmaker_*.iso --plan live --out /var/tmp/install-live
 ```
 
 Num disco pequeno (por exemplo um `/tmp` em tmpfs), o os-autoinst recusa o
