@@ -6,6 +6,11 @@
 # Uso (como root, dentro de um contêiner Manjaro descartável):
 #   resolve-edition.sh <dir-da-edição> <dir-do-bigwm-local> <stable|testing>
 #
+# O terceiro argumento é o branch BigCommunity/BigLinux. O do Manjaro vem de
+# MANJARO_BRANCH (padrão stable), o mesmo que o workflow passa ao motor: com
+# o Manjaro no branch da BigCommunity, um build testing reprovava aqui por
+# pacotes que só o Manjaro testing não tem (gedit-plugins, 2026-11-03).
+#
 # Falha se algum nome não existir ou se a transação conjunta não fechar
 # (dependências ou conflitos). Leva poucos minutos, contra dezenas do build:
 # por isso roda antes do job privilegiado.
@@ -21,6 +26,8 @@ die() { printf 'resolve-edition.sh: erro: %s\n' "$*" >&2; exit 1; }
 (($# == 3)) || die "uso: resolve-edition.sh <dir-da-edição> <dir-do-bigwm-local> <stable|testing>"
 edition=$1 local_repo=$2 branch=$3
 [[ $branch =~ ^(stable|testing)$ ]] || die "branch inválido: $branch"
+manjaro_branch=${MANJARO_BRANCH:-stable}
+[[ $manjaro_branch =~ ^(stable|testing|unstable)$ ]] || die "MANJARO_BRANCH inválido: $manjaro_branch"
 [[ -f $local_repo/bigwm-local.db.tar.gz ]] || die "repositório local sem banco: $local_repo"
 for list in Packages-Root Packages-Desktop Packages-Live; do
     [[ -r $edition/$list ]] || die "lista ausente: $edition/$list"
@@ -29,7 +36,7 @@ done
 biglinux_host=${BIGLINUX_REPO_HOST:-packages.biglinux.com.br}
 community_host=${COMMUNITY_REPO_HOST:-repo.communitybig.org}
 
-pacman-mirrors --api --set-branch "$branch" >/dev/null
+pacman-mirrors --api --set-branch "$manjaro_branch" >/dev/null
 
 section() { # nome, servidor
     printf '\n[%s]\nSigLevel = Optional TrustAll\nServer = %s\n' "$1" "$2"
@@ -67,7 +74,7 @@ mapfile -t names < <(
         sed -e 's/#.*//' -e '/^[[:space:]]*>i686[[:space:]]/d' -e 's/^[[:space:]]*>[a-z0-9_]*[[:space:]]*//' |
         awk 'NF {print $1}' | sed -e 's/[<>=].*//' -e 's/KERNEL/linux612/g' | sort -u
 )
-printf 'Resolvendo %d nomes no branch %s\n' "${#names[@]}" "$branch"
+printf 'Resolvendo %d nomes no branch %s (Manjaro %s)\n' "${#names[@]}" "$branch" "$manjaro_branch"
 
 missing=()
 for name in "${names[@]}"; do

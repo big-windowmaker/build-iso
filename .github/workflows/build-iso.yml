@@ -70,6 +70,9 @@ env:
   # workflow diagnose-repos.yml.
   BIGLINUX_REPO_HOST: ${{ vars.BIGLINUX_REPO_HOST || 'packages.biglinux.com.br' }}
   COMMUNITY_REPO_HOST: ${{ vars.COMMUNITY_REPO_HOST || 'repo.communitybig.org' }}
+  # Branch do Manjaro: sempre stable, no motor e na simulação (job resolve).
+  # O input branch só escolhe os repositórios BigCommunity/BigLinux.
+  MANJARO_BRANCH: stable
   # Motor de ISO da BigLinux, fixado por commit. Para atualizar:
   #   gh api repos/biglinux/iso-profiles/commits/main --jq .sha
   # e revisar o diff de build-iso/ antes de trocar.
@@ -300,7 +303,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/edition"
           cp -L "$edition"/Packages-{Root,Desktop,Live} "$RUNNER_TEMP/edition/"
           docker run --rm \
-            -e BIGLINUX_REPO_HOST -e COMMUNITY_REPO_HOST \
+            -e BIGLINUX_REPO_HOST -e COMMUNITY_REPO_HOST -e MANJARO_BRANCH \
             -v "$GITHUB_WORKSPACE/ci/scripts:/scripts:ro" \
             -v "$RUNNER_TEMP/edition:/edition:ro" \
             -v "$RUNNER_TEMP/bigwm-local:/srv/bigwm-local:ro" \
@@ -421,7 +424,7 @@ jobs:
           export PROFILES_ROOT="$GITHUB_WORKSPACE/profiles"
           export WORK_PATH="$GITHUB_WORKSPACE/output"
           export BIGWM_LOCAL_REPO=/srv/bigwm-local
-          export MANJARO_BRANCH=stable
+          export MANJARO_BRANCH
           export BIGCOMMUNITY_BRANCH="$BIG_BRANCH"
           export BIGLINUX_BRANCH="$BIG_BRANCH"
           export KERNEL EDITION DISTRONAME
