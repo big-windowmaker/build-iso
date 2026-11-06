@@ -313,6 +313,17 @@ tag=$(gh api repos/actions/checkout/releases/latest --jq .tag_name)
 gh api repos/actions/checkout/git/ref/tags/$tag --jq '.object'
 ```
 
+## Créditos
+
+Desenvolvimento do Big WindowMaker:
+
+- **Rafael Ruscher** — <rruscher@gmail.com.br>
+- **Barnabé Di Kartola** — <barnabedikartola@gmail.com>
+
+Sobre os ombros do [Window Maker](https://www.windowmaker.org/), do
+[wlmaker](https://github.com/phkaeser/wlmaker) (Philipp Kaeser), do
+[BigLinux](https://www.biglinux.com.br) e da [BigCommunity](https://communitybig.org).
+
 ## Licença
 
 GPL-3.0 (mesma licença do motor `biglinux/iso-profiles`, do qual os scripts
