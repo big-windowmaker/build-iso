@@ -52,6 +52,16 @@ cat SHA256SUMS
     echo "- Aprovada no smoke test em QEMU (BIOS e UEFI) e no teste de instalação pelo Calamares (BIOS e UEFI): instalação, boot pelo disco, login, sessões X11 e Wayland."
     echo "- Modo live: usuário \`community\`, senha \`big\`."
     echo
+    echo "### Novidades desta Alpha"
+    echo
+    echo "- Dockapps acoplados no Dock ou no Clip iniciam com a sessão (Window Maker 12)."
+    echo "- Histórico da área de transferência (Super+V) que sobrevive ao reinício, com busca, favoritos e privacidade, no X11 e no Wayland."
+    echo "- Mosaico confiável em vários monitores e dockapp que mostra o modo (wmake-zones 0.3.1, wlmaker 18)."
+    echo "- Tela de bloqueio OPENSTEP com teclado na tela no Wayland."
+    echo "- Barras de título do Window Maker no VSCodium; nome e logo do Big WindowMaker para programas de fora."
+    echo
+    echo "Desenvolvimento: Rafael Ruscher <rruscher@gmail.com.br> e Barnabé Di Kartola <barnabedikartola@gmail.com>."
+    echo
     echo "Para juntar e conferir: \`7z x $iso.7z.001\` e depois \`sha256sum -c SHA256SUMS --ignore-missing\`."
     echo
     echo '```'
