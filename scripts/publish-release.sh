@@ -60,7 +60,7 @@ cat SHA256SUMS
     echo "- Tela de bloqueio OPENSTEP com teclado na tela no Wayland."
     echo "- Barras de título do Window Maker no VSCodium; nome e logo do Big WindowMaker para programas de fora."
     echo
-    echo "Desenvolvimento: Rafael Ruscher <rruscher@gmail.com.br> e Barnabé Di Kartola <barnabedikartola@gmail.com>."
+    echo "Desenvolvimento: Rafael Ruscher <rruscher@gmail.com> e Barnabé Di Kartola <barnabedikartola@gmail.com>."
     echo
     echo "Para juntar e conferir: \`7z x $iso.7z.001\` e depois \`sha256sum -c SHA256SUMS --ignore-missing\`."
     echo
