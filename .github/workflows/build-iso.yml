@@ -88,6 +88,7 @@ env:
   # publica um artefato por diretório de pacote: packages-<diretório>.
   PACKAGE_SOURCES: |
     big-windowmaker/big-wm    ci.yml     big-wm-packages
+    big-windowmaker/tabbed-dock ci.yml   tabbed-dock-packages
     big-windowmaker/packages  build.yml  packages-windowmaker
     big-windowmaker/packages  build.yml  packages-wlmaker
     big-windowmaker/packages  build.yml  packages-big-dockapps
