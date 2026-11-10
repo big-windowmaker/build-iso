@@ -65,12 +65,14 @@ big-windowmaker/packages  build.yml  packages-big-dockapps
 big-windowmaker/packages  build.yml  packages-biglinux-livecd
 big-windowmaker/packages  build.yml  packages-gtk-nocsd
 big-windowmaker/packages  build.yml  packages-wmake-zones
+big-windowmaker/packages  build.yml  packages-wmpulsemixer
 ```
 
 `big-windowmaker/packages` publica um artefato por diretório de pacote
 (`packages-<diretório>`). `EXPECTED_PACKAGES` lista o que precisa sair do
 repositório local e estar na ISO (big-wm-session, big-wm-wayland,
-big-wm-themes, windowmaker, wlmaker, wmake-zones, os dockapps,
+big-wm-themes, windowmaker, wlmaker, wmake-zones, os dockapps (com o
+wmpulsemixer, o volume padrão do Dock),
 biglinux-livecd e gtk-nocsd); faltar qualquer um é erro.
 
 Para cada fonte, `fetch-package-artifacts.sh` escolhe o artefato mais recente
