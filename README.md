@@ -60,6 +60,7 @@ no topo do workflow — uma fonte por linha, `<dono/repo> <workflow> <artefato>`
 ```text
 big-windowmaker/big-wm    ci.yml     big-wm-packages
 big-windowmaker/tabbed-dock ci.yml   tabbed-dock-packages
+big-windowmaker/big-wm-display-resolution ci.yml display-resolution-packages
 big-windowmaker/packages  build.yml  packages-windowmaker
 big-windowmaker/packages  build.yml  packages-wlmaker
 big-windowmaker/packages  build.yml  packages-big-dockapps
