@@ -49,8 +49,17 @@ instalação pelo Calamares e login no sistema instalado.
 
 ## Baixar e experimentar
 
-1. Baixe a ISO e o `.sha256` da [última release](https://github.com/big-windowmaker/build-iso/releases).
-2. Confira: `sha256sum --check big-windowmaker_*.iso.sha256`
+1. Na [última release](https://github.com/big-windowmaker/build-iso/releases)
+   (pre-release: o atalho "latest" do GitHub não as mostra), baixe as **três
+   partes** `.iso.7z.001`, `.002` e `.003` e o `SHA256SUMS` para a mesma pasta.
+   A ISO tem cerca de 5 GiB e o GitHub limita cada arquivo a 2 GB.
+2. Confira, junte e confira de novo:
+
+   ```sh
+   sha256sum -c SHA256SUMS --ignore-missing       # as três partes
+   7z x big-windowmaker_*.iso.7z.001              # pacote 7zip
+   sha256sum -c SHA256SUMS --ignore-missing       # agora também a .iso
+   ```
 3. Experimente numa máquina virtual (4 GiB de RAM, 2 CPUs):
 
    ```sh
@@ -439,6 +448,7 @@ BigLinux ISO engine and the `bigcommunity/wmaker` profile, from a local,
 unsigned repository assembled from the CI artifacts of the other
 repositories, then boots it in QEMU (BIOS and UEFI), installs it with
 Calamares and logs in. ISOs are published only as pre-releases (Alpha).
-Download from [Releases](https://github.com/big-windowmaker/build-iso/releases),
-check the `.sha256` and try it in a VM. Maintainers: Rafael Ruscher and
+Download the three `.iso.7z` parts and `SHA256SUMS` from
+[Releases](https://github.com/big-windowmaker/build-iso/releases), check them,
+join them with `7z x …iso.7z.001` and try the ISO in a VM. Maintainers: Rafael Ruscher and
 Barnabé Di Kartola. License: GPL-3.0.
