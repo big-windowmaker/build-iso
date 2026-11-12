@@ -45,7 +45,7 @@
 #   9. ewmh: o gerenciador de janelas publica _NET_SUPPORTING_WM_CHECK com o
 #      nome "Window Maker" (está gerenciando o display :0).
 #  10. dock: os dockapps do WMState padrão estão rodando (wmclock,
-#      wmsystemtray, wmix, wmcpuload, wmmemload, wmnet).
+#      wmsystemtray, wmpulsemixer (ou wmix), wmcpuload, wmmemload, wmnet).
 #  11. menu: F12 (RootMenuKey) abre o menu raiz (a tela muda; captura).
 #  12. terminal: xdg-terminal-exec abre uma janela nova gerenciada pelo WM,
 #      e ela aparece na tela (terminal-visivel: a captura muda pelo menos
@@ -489,9 +489,13 @@ case "$1" in
     x11) as_user python3 /tmp/bwm-x11-probe.py "$2" ;;
     dock)
         missing=
-        for app in wmclock wmsystemtray wmix wmcpuload wmmemload wmnet; do
+        for app in wmclock wmsystemtray wmcpuload wmmemload wmnet; do
             pgrep -u "$u" -x "$app" >/dev/null || missing="$missing,$app"
         done
+        # Volume: o wmpulsemixer do Dock padrão (desde 11/2026); o wmix
+        # quando o usuário ou uma versão anterior o deixou no lugar.
+        pgrep -u "$u" -x wmpulsemixer >/dev/null || pgrep -u "$u" -x wmix >/dev/null ||
+            missing="$missing,wmpulsemixer"
         missing=${missing#,}
         echo "BWM""_U_DOCK_MISSING=${missing:-nenhum}"
         ;;
@@ -595,7 +599,7 @@ if [[ "$usability" == true && "$wmaker" == yes ]]; then
         record FAIL ewmh "_NET_SUPPORTING_WM_CHECK: \"${wm_name:-sem resposta}\" (esperado Window Maker)"
     fi
     if [[ "$dock_missing" == nenhum ]]; then
-        record PASS dock "dockapps em execução: wmclock wmsystemtray wmix wmcpuload wmmemload wmnet"
+        record PASS dock "dockapps em execução: wmclock wmsystemtray wmpulsemixer wmcpuload wmmemload wmnet"
     else
         record FAIL dock "dockapps ausentes: ${dock_missing:-sem resposta}"
     fi
