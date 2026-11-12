@@ -1,25 +1,101 @@
-# build-iso — ISO de teste do Big WindowMaker
+<p align="center">
+  <img src="https://raw.githubusercontent.com/big-windowmaker/big-wm/main/themes/logo/big-wm.svg" width="120" alt="Logo do Big WindowMaker">
+</p>
+
+<h1 align="center">build-iso</h1>
+
+<p align="center">
+  <b>A ISO de teste do Big WindowMaker: gerada, iniciada e instalada em máquinas virtuais a cada execução.</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/big-windowmaker/build-iso/actions/workflows/build-iso.yml"><img src="https://github.com/big-windowmaker/build-iso/actions/workflows/build-iso.yml/badge.svg" alt="Build ISO"></a>
+  <a href="https://github.com/big-windowmaker/build-iso/releases"><img src="https://img.shields.io/github/v/release/big-windowmaker/build-iso?include_prereleases&label=ISO" alt="Última ISO"></a>
+  <img src="https://img.shields.io/badge/fase-Alpha-8a2be2" alt="Fase Alpha">
+  <img src="https://img.shields.io/badge/boot-BIOS%20%C2%B7%20UEFI-555" alt="BIOS e UEFI">
+  <img src="https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-blue" alt="Licença GPL-3.0">
+</p>
+
+<p align="center">
+  <a href="#baixar-e-experimentar">Baixar</a> ·
+  <a href="#capturas-da-iso">Capturas</a> ·
+  <a href="#como-a-iso-é-feita">Como é feita</a> ·
+  <a href="#o-que-o-workflow-faz">Workflow</a> ·
+  <a href="#smoke-test-o-que-é-verificado">Testes</a> ·
+  <a href="#como-executar">Executar</a> ·
+  <a href="#contribuir">Contribuir</a> ·
+  <a href="#créditos">Créditos</a> ·
+  <a href="#in-english">English</a>
+</p>
 
 Pipeline do GitHub Actions que gera a ISO live da edição **Big WindowMaker**
 (`bigcommunity/wmaker`) da BigCommunity, usando o motor de ISO da BigLinux
-sem modificá-lo.
+sem modificá-lo, e a testa de verdade: boot BIOS e UEFI até a sessão live,
+instalação pelo Calamares e login no sistema instalado.
 
-> **IMPORTANTE — sessão live.** A sessão live só chega ao Window Maker com o
-> patch do `biglinux-livecd` que está no branch
-> [`window-maker` de big-windowmaker/biglinux-livecd](https://github.com/big-windowmaker/biglinux-livecd/tree/window-maker)
-> (o `startbiglive` passa a executar `startbigwm`). Enquanto esse patch não
-> entrar no `biglinux-livecd` da BigLinux e chegar aos repositórios, a ISO
-> **entra em loop no login**: o autologin abre a sessão `livecd`, o assistente
-> termina e o display manager é reiniciado em vez de abrir o Window Maker.
-> O smoke test detecta isso e **reprova a ISO por padrão**
-> (`require_livecd_patch: true`).
+> **Somente teste.** Os pacotes do Big WindowMaker ainda não estão num
+> repositório público assinado: a ISO usa um repositório local **não
+> assinado** (`[bigwm-local]`), montado com os artefatos de CI dos outros
+> repositórios, e é publicada só como *pre-release* (Alpha), sem assinatura.
 
-> **IMPORTANTE — somente teste.** Os pacotes do Big WindowMaker ainda não
-> estão em nenhum repositório público assinado. Esta ISO usa um repositório
-> local **não assinado** (`[bigwm-local]`), montado com os artefatos de CI de
-> outros repositórios. As ISOs geradas aqui são para teste e são publicadas,
-> quando publicadas, apenas como *pre-release*. Não há assinatura da ISO
-> nesta fase.
+> **Sessão live (resolvido).** A sessão live só chega ao Window Maker com o
+> patch do `biglinux-livecd` em que o `startbiglive` executa o `startbigwm`;
+> sem ele o login entra em loop. A ISO usa o `biglinux-livecd` do
+> [fork do Big WindowMaker](https://github.com/big-windowmaker/biglinux-livecd),
+> compilado pelo [packages](https://github.com/big-windowmaker/packages/tree/main/biglinux-livecd),
+> que já tem o patch. O smoke test continua conferindo e **reprova a ISO**
+> se ele faltar (`require_livecd_patch: true`), até a mudança entrar no
+> `biglinux-livecd` da BigLinux.
+
+## Baixar e experimentar
+
+1. Baixe a ISO e o `.sha256` da [última release](https://github.com/big-windowmaker/build-iso/releases).
+2. Confira: `sha256sum --check big-windowmaker_*.iso.sha256`
+3. Experimente numa máquina virtual (4 GiB de RAM, 2 CPUs):
+
+   ```sh
+   qemu-system-x86_64 -enable-kvm -m 4096 -smp 2 -cdrom big-windowmaker_*.iso \
+     -boot d -vga virtio -display gtk
+   ```
+
+   ou grave num pendrive (`sudo dd if=big-windowmaker_*.iso of=/dev/sdX bs=4M
+   status=progress oflag=sync`, com **o dispositivo certo**: o conteúdo dele
+   é apagado).
+4. Na sessão live, o ícone de instalação abre o Calamares. Problemas:
+   [issues](https://github.com/big-windowmaker/build-iso/issues).
+
+Guia completo, com requisitos e problemas comuns, no
+[perfil da organização](https://github.com/big-windowmaker).
+
+## Capturas da ISO
+
+ISO de teste (Alpha), máquina virtual, 06/11/2026:
+
+| | |
+|---|---|
+| ![Menu do GRUB com o tema do Big WindowMaker](https://raw.githubusercontent.com/big-windowmaker/.github/main/profile/images/iso-grub.png) | ![Sessão live do Big WindowMaker](https://raw.githubusercontent.com/big-windowmaker/.github/main/profile/images/iso-sessao-live.png) |
+| GRUB | Sessão live |
+| ![Calamares: particionamento](https://raw.githubusercontent.com/big-windowmaker/.github/main/profile/images/iso-calamares-particoes.png) | ![Sistema instalado na sessão Wayland](https://raw.githubusercontent.com/big-windowmaker/.github/main/profile/images/iso-instalado-wayland.png) |
+| Instalação pelo Calamares | Sistema instalado (Wayland) |
+
+## Como a ISO é feita
+
+```mermaid
+flowchart LR
+  subgraph Fontes
+    BW[big-wm] --> R
+    TD[tabbed-dock] --> R
+    DR[big-wm-display-resolution] --> R
+    PK[packages: windowmaker, wlmaker,<br/>wmake-zones, dockapps, livecd...] --> R
+  end
+  R[(repositório local<br/>bigwm-local)] --> B[buildiso<br/>motor BigLinux]
+  P[iso-profiles<br/>bigcommunity/wmaker] --> B
+  B --> ISO[(ISO)]
+  ISO --> S[smoke test<br/>QEMU BIOS e UEFI]
+  ISO --> I[instalação<br/>Calamares + login]
+  S --> REL[pre-release]
+  I --> REL
+```
 
 ## O que o workflow faz
 
@@ -318,18 +394,51 @@ tag=$(gh api repos/actions/checkout/releases/latest --jq .tag_name)
 gh api repos/actions/checkout/git/ref/tags/$tag --jq '.object'
 ```
 
+## Contribuir
+
+- Problemas da ISO (boot, sessão live, instalação): [issues](https://github.com/big-windowmaker/build-iso/issues),
+  com o firmware (BIOS ou UEFI), a máquina (física ou VM) e, se houver, o
+  `result.txt` e as capturas do smoke test.
+- Mudanças no pipeline: *pull request* com o `shellcheck` dos scripts limpo;
+  guia: [CONTRIBUTING](https://github.com/big-windowmaker/.github/blob/main/CONTRIBUTING.md).
+- Pacotes e perfil ficam em [packages](https://github.com/big-windowmaker/packages)
+  e [iso-profiles](https://github.com/big-windowmaker/iso-profiles).
+
 ## Créditos
 
-Desenvolvimento do Big WindowMaker:
+### Mantenedores do Big WindowMaker
 
 - **Rafael Ruscher** — <rruscher@gmail.com>
 - **Barnabé Di Kartola** — <barnabedikartola@gmail.com>
 
-Sobre os ombros do [Window Maker](https://www.windowmaker.org/), do
-[wlmaker](https://github.com/phkaeser/wlmaker) (Philipp Kaeser), do
-[BigLinux](https://www.biglinux.com.br) e da [BigCommunity](https://communitybig.org).
+O motor de ISO é o da [BigLinux](https://github.com/biglinux/iso-profiles),
+usado sem modificação; o perfil vem da
+[BigCommunity](https://github.com/big-comm/iso-profiles).
+
+### Agradecimentos especiais
+
+- **Alfredo Kojima** — pelo desenvolvimento original do
+  [Window Maker](https://www.windowmaker.org/) e pelo legado que inspirou
+  este projeto.
+- **Philipp Kaeser** — pelo [wlmaker](https://github.com/phkaeser/wlmaker) e
+  pelo trabalho de levar a inspiração do Window Maker ao Wayland.
+- **Bruno Gonçalves** — pelo [BigLinux](https://www.biglinux.com.br/) e por
+  suas contribuições ao ecossistema Linux.
+- **Tales A. Mendonça** — pelas contribuições ao desenvolvimento e
+  fortalecimento da [BigCommunity](https://communitybig.org).
 
 ## Licença
 
 GPL-3.0 (mesma licença do motor `biglinux/iso-profiles`, do qual os scripts
 derivam); ver `LICENSE`.
+
+## In English
+
+**build-iso** builds the Big WindowMaker test ISO with the unmodified
+BigLinux ISO engine and the `bigcommunity/wmaker` profile, from a local,
+unsigned repository assembled from the CI artifacts of the other
+repositories, then boots it in QEMU (BIOS and UEFI), installs it with
+Calamares and logs in. ISOs are published only as pre-releases (Alpha).
+Download from [Releases](https://github.com/big-windowmaker/build-iso/releases),
+check the `.sha256` and try it in a VM. Maintainers: Rafael Ruscher and
+Barnabé Di Kartola. License: GPL-3.0.
