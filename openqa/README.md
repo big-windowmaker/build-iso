@@ -4,7 +4,10 @@ O job `install-test` do `build-iso.yml` e o `scripts/install-test.sh` instalam
 a ISO de verdade numa VM e iniciam o sistema instalado:
 
 1. boot da ISO (GRUB → entrada padrão) e login no console serial `hvc0` com o
-   usuário live (`community`/`big`);
+   usuário live (`bigwindowmaker`/`big`);
+   **login pela tela do wdm** (`bigwm_live_login`): a sessão live não tem
+   login automático; Enter no usuário da lista, a senha live, Enter, na
+   sessão padrão "Big WindowMaker Live";
 2. **assistente live** (GTK4): idioma por busca ("Brazil"), teclado e estilo de
    tema claro/escuro — a edição Window Maker é um ambiente "simplificado",
    sem a etapa de layout do Plasma;
@@ -85,7 +88,7 @@ Nada da BigLinux é copiado para este repositório. `scripts/install-test.sh`:
 
 | Patch | Arquivo(s) | Por quê |
 |---|---|---|
-| `0001-live-credentials` | `openqa/lib/biglinux.pm` | O usuário live era fixo `biglinux`/`biglinux`; vira `BIGLINUX_LIVE_USER`/`BIGLINUX_LIVE_PASSWORD` (BigCommunity: `community`/`big`). |
+| `0001-live-credentials` | `openqa/lib/biglinux.pm` | O usuário live era fixo `biglinux`/`biglinux`; vira `BIGLINUX_LIVE_USER`/`BIGLINUX_LIVE_PASSWORD` (Big WindowMaker: `bigwindowmaker`/`big`). |
 | `0002-simplified-wizard-optional-orca` | `openqa/tests/live_desktop.pm` | Com `BIGLINUX_WIZARD_SIMPLIFIED=1`, o assistente é idioma → teclado → "Escolha um estilo de tema" (sem a etapa de layout do Plasma). `BIGLINUX_ORCA=0` não inicia o Orca (a verificação de fala é do gate de acessibilidade da BigLinux, fora do escopo aqui). |
 | `0003-x11-session` | `data/desktop_session.py`, `openqa/lib/atspi.pm` | O harness exige sessão Wayland; com `BIGLINUX_SESSION_TYPE=x11` exige uma sessão X11 (`DISPLAY` local, socket `/tmp/.X11-unix/X<n>`) e recusa Wayland. |
 | `0004-installed-display-manager` | `openqa/lib/installed_system.pm` | `sddm`, `sddm-greeter`, `plasmashell` e `Type=wayland` viram `BIGLINUX_DISPLAY_MANAGER`, `BIGLINUX_GREETER`, `BIGLINUX_DESKTOP_SHELL` e `BIGLINUX_SESSION_TYPE` (aqui: `lightdm`, `slick-greeter`, `wmaker`, `x11`). |
