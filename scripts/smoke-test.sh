@@ -26,9 +26,12 @@
 #   1. O QEMU não termina sozinho (usamos -no-reboot: reboot/triple fault = falha).
 #   2. O debug shell responde na serial 1  -> o kernel e o systemd subiram a
 #      partir da entrada padrão do GRUB (o GRUB/firmware funcionam).
-#   3. lightdm.service fica "active".
+#   3. O gerenciador de login (display-manager.service, o wdm) fica "active"
+#      e a tela de login (wdmLogin) aparece.
 #   4. Existe um processo Xorg.
-#   5. Existe uma sessão do logind para o usuário live (autologin funcionou).
+#   5. Existe uma sessão do logind para o usuário live: o teste entra pela
+#      tela do wdm como o usuário faria (Enter no usuário da lista, a senha
+#      da sessão live, Enter), na sessão padrão "Big WindowMaker Live".
 #   6. O biglinux-livecd instalado tem o patch do Window Maker (startbiglive
 #      chama startbigwm). Sem ele a sessão live entra em loop no login.
 #      Pode ser rebaixado a aviso com --require-livecd-patch false.
@@ -87,7 +90,8 @@ EOF
 
 iso="" firmware="" out="" ovmf_code="" ovmf_vars=""
 require_patch=true
-live_user=community
+live_user=bigwindowmaker
+live_password=big
 usability=true
 
 while (($#)); do
@@ -99,6 +103,7 @@ while (($#)); do
         --ovmf-vars) ovmf_vars=${2:?}; shift 2 ;;
         --require-livecd-patch) require_patch=${2:?}; shift 2 ;;
         --live-user) live_user=${2:?}; shift 2 ;;
+        --live-password) live_password=${2:?}; shift 2 ;;
         --usability) usability=${2:?}; shift 2 ;;
         -h | --help) usage; exit 0 ;;
         *) usage >&2; exit 2 ;;
@@ -128,6 +133,7 @@ x11_probe="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/smoke-x11-probe.py"
 metrics_script="${x11_probe%/*}/vm-metrics.sh"
 [[ -f "$metrics_script" ]] || die "script de métricas não encontrado: $metrics_script"
 [[ "$live_user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || die "usuário live inválido: $live_user"
+[[ "$live_password" =~ ^[a-z0-9]{1,32}$ ]] || die "senha live inválida (só a-z e 0-9, digitada pelo teclado virtual)"
 for n in "$boot_timeout" "$grub_wait" "$memory" "$cpus" "$min_colors" "$min_window_bytes" "$idle_seconds" "$mon_port" "$ser_port"; do
     [[ "$n" =~ ^[0-9]+$ ]] || die "valor numérico inválido: $n"
 done
@@ -386,8 +392,14 @@ probe=(
     'bwm_wait() { local t=$1; shift; while ((t-- > 0)); do "$@" >/dev/null 2>&1 && return 0; sleep 5; done; return 1; }'
     'bwm_yes() { "$@" >/dev/null 2>&1 && echo yes || echo no; }'
     'bwm_session() { loginctl list-sessions --no-legend | awk -v u="$1" '"'"'$3 == u {f=1} END {exit !f}'"'"'; }'
-    'bwm_wait 60 systemctl is-active --quiet lightdm.service; echo "BWM""_DM=$(systemctl is-active lightdm.service)"'
+    'bwm_wait 60 systemctl is-active --quiet display-manager.service; echo "BWM""_DM=$(systemctl is-active display-manager.service)"'
+    'dm=$(readlink -f /etc/systemd/system/display-manager.service); dm=${dm##*/}; echo "BWM""_DMNAME=${dm%.service}"'
     'bwm_wait 36 pgrep -x Xorg; echo "BWM""_XORG=$(bwm_yes pgrep -x Xorg)"'
+    'bwm_wait 36 pgrep -x wdmLogin; sleep 3; echo "BWM""_GREETER=$(bwm_yes pgrep -x wdmLogin)"'
+)
+# Depois da tela de login: o teste entra pela tela, como o usuário.
+# shellcheck disable=SC2016
+probe_session=(
     'bwm_wait 36 bwm_session LIVEUSER; echo "BWM""_SESSION=$(bwm_yes bwm_session LIVEUSER)"'
     'echo "BWM""_LIVECD_PATCH=$(bwm_yes grep -q startbigwm /usr/bin/startbiglive)"'
     'bwm_wait 12 pgrep -f /usr/share/biglinux/livecd/main.py; echo "BWM""_WIZARD=$(bwm_yes pgrep -f /usr/share/biglinux/livecd/main.py)"'
@@ -401,6 +413,27 @@ for line in "${probe[@]}"; do
     guest "${line//LIVEUSER/$live_user}"
     sleep 0.3
 done
+log "Aguardando a tela de login do wdm"
+# Mais que o orçamento das sondas no convidado (display-manager 300 s, Xorg
+# 180 s, wdmLogin 183 s = 663 s): a tela que chega no fim dele não se perde.
+greeter_deadline=$((SECONDS + 720))
+while [[ -z "$(marker GREETER)" ]] && ((SECONDS < greeter_deadline)); do
+    alive
+    sleep 5
+done
+screendump 25-tela-de-login
+if [[ "$(marker GREETER)" == yes ]]; then
+    # O usuário live já vem escolhido na lista: Enter, a senha, Enter.
+    sendkey ret
+    sleep 1
+    type_text "$live_password"
+    sendkey ret
+    log "Login pela tela do wdm como $live_user"
+fi
+for line in "${probe_session[@]}"; do
+    guest "${line//LIVEUSER/$live_user}"
+    sleep 0.3
+done
 
 log "Sondas enviadas; aguardando o resultado"
 probe_deadline=$((SECONDS + 900))
@@ -411,17 +444,22 @@ while [[ "$(marker DONE)" != 1 ]]; do
 done
 screendump 90-final
 
-dm=$(marker DM) xorg=$(marker XORG) session=$(marker SESSION)
+dm=$(marker DM) dmname=$(marker DMNAME) greeter=$(marker GREETER) xorg=$(marker XORG) session=$(marker SESSION)
 patch=$(marker LIVECD_PATCH) wizard=$(marker WIZARD) wmaker=$(marker WMAKER)
 failed_units=$(marker FAILED_UNITS)
 
 if [[ "$(marker DONE)" != 1 ]]; then
     record FAIL sondas "as sondas não terminaram em 900s"
 fi
-if [[ "$dm" == active ]]; then
-    record PASS lightdm "lightdm.service ativo"
+if [[ "$dm" == active && "$dmname" == wdm ]]; then
+    record PASS wdm "display-manager.service (wdm) ativo"
 else
-    record FAIL lightdm "lightdm.service: ${dm:-sem resposta}"
+    record FAIL wdm "display-manager.service: ${dm:-sem resposta} (${dmname:-?}; esperado wdm)"
+fi
+if [[ "$greeter" == yes ]]; then
+    record PASS tela-de-login "wdmLogin na tela"
+else
+    record FAIL tela-de-login "a tela de login do wdm não apareceu"
 fi
 if [[ "$xorg" == yes ]]; then
     record PASS xorg "processo Xorg presente"
@@ -431,7 +469,7 @@ fi
 if [[ "$session" == yes ]]; then
     record PASS sessao-live "sessão logind de $live_user"
 else
-    record FAIL sessao-live "sem sessão logind de $live_user (autologin falhou)"
+    record FAIL sessao-live "sem sessão logind de $live_user (o login pela tela do wdm falhou)"
 fi
 
 check_wmaker=true

@@ -14,7 +14,7 @@ use testapi;
 testapi::set_distribution(biglinux->new);
 
 # Instalação pelo Calamares (particionamento automático "Apagar disco"),
-# reinício pelo disco instalado, login no LightDM e verificações do sistema.
+# reinício pelo disco instalado, login no wdm e verificações do sistema.
 # Ficam de fora, por dependerem do KDE Plasma ou só fazerem sentido lá:
 # applications (auditoria de todos os .desktop), installed_reader (Orca na
 # tela de bloqueio e no polkit do Plasma), installed_critical_apps
@@ -28,7 +28,9 @@ my @install = map { "openqa/tests/$_.pm" } qw(
     installed_boot installed_login bigwm_installed_session bigwm_metrics
     installed_health installed_security bigwm_update bigwm_wayland_session
 );
-my @live = map { "openqa/tests/$_.pm" } qw(live_desktop bigwm_live_session);
+# A sessão live do Big WindowMaker entra pela tela do wdm (bigwm_live_login)
+# antes do assistente (live_desktop); as outras edições têm login automático.
+my @live = map { "openqa/tests/$_.pm" } qw(bigwm_live_login live_desktop bigwm_live_session);
 
 my %schedules = (
     # Só a sessão live: falha em minutos; útil numa ISO nova.

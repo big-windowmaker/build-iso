@@ -50,7 +50,7 @@ cat SHA256SUMS
     echo
     echo "- Os pacotes do Big WindowMaker vêm de um repositório local **não assinado** ([bigwm-local]), montado a partir de artefatos de CI. Repositório e chave próprios são a fase 2."
     echo "- Aprovada no smoke test em QEMU (BIOS e UEFI) e no teste de instalação pelo Calamares (BIOS e UEFI): instalação, boot pelo disco, login, sessões X11 e Wayland."
-    echo "- Modo live: usuário \`community\`, senha \`big\`."
+    echo "- Modo live: tela de login wdm, usuário \`bigwindowmaker\`, senha \`big\` (F1 mostra)."
     echo
     echo "### Novidades desta Alpha"
     echo

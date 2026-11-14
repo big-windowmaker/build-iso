@@ -234,10 +234,12 @@ autocontido, rodado para
    nesta VM de teste.
 2. **Boot**: o debug shell responde na serial 1 → kernel, initramfs e systemd
    subiram pela entrada padrão.
-3. **lightdm**: `lightdm.service` fica `active`.
+3. **wdm**: `display-manager.service` (o wdm) fica `active` e a tela de
+   login (`wdmLogin`) aparece.
 4. **Xorg**: há um processo `Xorg`.
-5. **Sessão live**: o logind tem uma sessão do usuário `community` (o
-   autologin funcionou).
+5. **Sessão live**: o teste entra pela tela do wdm como o usuário faria
+   (Enter no usuário `bigwindowmaker` da lista, senha `big`, Enter) e o
+   logind tem a sessão dele.
 6. **Patch do livecd**: `/usr/bin/startbiglive` chama `startbigwm`. Sem o
    patch, reprova (ou vira aviso com `require_livecd_patch: false`).
 7. **Window Maker**: depois de fechar o assistente live (simula o usuário
