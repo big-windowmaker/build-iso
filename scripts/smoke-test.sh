@@ -414,7 +414,9 @@ for line in "${probe[@]}"; do
     sleep 0.3
 done
 log "Aguardando a tela de login do wdm"
-greeter_deadline=$((SECONDS + 400))
+# Mais que o orçamento das sondas no convidado (display-manager 300 s, Xorg
+# 180 s, wdmLogin 183 s = 663 s): a tela que chega no fim dele não se perde.
+greeter_deadline=$((SECONDS + 720))
 while [[ -z "$(marker GREETER)" ]] && ((SECONDS < greeter_deadline)); do
     alive
     sleep 5
