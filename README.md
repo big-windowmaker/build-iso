@@ -360,13 +360,15 @@ gh workflow run build-iso.yml -R big-windowmaker/build-iso \
 Antes de rodar, os CIs de origem precisam ter um run de push em `main` bem
 sucedido com artefatos não expirados (ver *Limites*). Como o `packages`
 compila só os diretórios alterados, cada artefato pode vir de um run
-diferente; para ver qual seria escolhido para uma fonte (o mais recente,
-não expirado, de push em `main`):
+diferente. O escolhido para cada fonte é o do run mais recente de push em
+`main`, concluído com sucesso, que tenha aquele artefato ainda válido:
 
 ```bash
-gh api 'repos/big-windowmaker/packages/actions/artifacts?name=packages-wdm' \
-  --jq '.artifacts[] | select(.expired | not) | select(.workflow_run.head_branch == "main")
-        | "\(.created_at) run \(.workflow_run.id) \(.workflow_run.head_sha[:7])"'
+# runs elegíveis, do mais novo ao mais antigo
+gh run list -R big-windowmaker/packages -w build.yml -b main -e push -s success -L 20
+# artefatos ainda válidos de um desses runs
+gh api repos/big-windowmaker/packages/actions/runs/<run>/artifacts \
+  --jq '.artifacts[] | select(.expired | not) | .name'
 ```
 
 O que a ISO recebeu de fato fica em `bigwm-local.sources.tsv` (repositório,
