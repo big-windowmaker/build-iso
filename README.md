@@ -21,8 +21,10 @@
   <a href="#capturas-da-iso">Capturas</a> ·
   <a href="#como-a-iso-é-feita">Como é feita</a> ·
   <a href="#o-que-o-workflow-faz">Workflow</a> ·
+  <a href="#fontes-dos-pacotes-uma-variável">Fontes</a> ·
   <a href="#smoke-test-o-que-é-verificado">Testes</a> ·
   <a href="#como-executar">Executar</a> ·
+  <a href="#baixar-a-iso-de-um-run">Artefatos</a> ·
   <a href="#contribuir">Contribuir</a> ·
   <a href="#créditos">Créditos</a> ·
   <a href="#in-english">English</a>
@@ -31,7 +33,7 @@
 Pipeline do GitHub Actions que gera a ISO live da edição **Big WindowMaker**
 (`bigcommunity/wmaker`) da BigCommunity, usando o motor de ISO da BigLinux
 sem modificá-lo, e a testa de verdade: boot BIOS e UEFI até a sessão live,
-instalação pelo Calamares e login no sistema instalado.
+instalação pelo Calamares e login no sistema instalado pelo wdm.
 
 > **Somente teste.** Os pacotes do Big WindowMaker ainda não estão num
 > repositório público assinado: a ISO usa um repositório local **não
@@ -70,7 +72,12 @@ instalação pelo Calamares e login no sistema instalado.
    ou grave num pendrive (`sudo dd if=big-windowmaker_*.iso of=/dev/sdX bs=4M
    status=progress oflag=sync`, com **o dispositivo certo**: o conteúdo dele
    é apagado).
-4. Na sessão live, o ícone de instalação abre o Calamares. Problemas:
+4. Na tela de login (wdm), escolha o usuário **bigwindowmaker**, senha
+   **big** (F1 mostra a ajuda), e a sessão padrão *Big WindowMaker Live*: o
+   assistente pede idioma, teclado e tema e abre a área de trabalho. As ISOs
+   publicadas até 12/11/2026 são anteriores ao wdm na live: entram sozinhas
+   pelo LightDM, com o usuário `community` (senha `big`). O ícone
+   de instalação abre o Calamares. Problemas:
    [issues](https://github.com/big-windowmaker/build-iso/issues).
 
 Guia completo, com requisitos e problemas comuns, no
@@ -91,17 +98,19 @@ ISO de teste (Alpha), máquina virtual, 06/11/2026:
 
 ```mermaid
 flowchart LR
-  subgraph Fontes
+  subgraph Fontes["Artefatos de CI (push em main)"]
     BW[big-wm] --> R
     TD[tabbed-dock] --> R
     DR[big-wm-display-resolution] --> R
-    PK[packages: windowmaker, wlmaker,<br/>wmake-zones, dockapps, livecd...] --> R
+    BK[big-keyboard] --> R
+    PK[packages: windowmaker, wlmaker,<br/>dockapps, wdm, temas, thunar-git, livecd...] --> R
   end
-  R[(repositório local<br/>bigwm-local)] --> B[buildiso<br/>motor BigLinux]
-  P[iso-profiles<br/>bigcommunity/wmaker] --> B
+  R[(repositório local<br/>bigwm-local)] --> V[resolve<br/>simulação pacman]
+  P[iso-profiles<br/>bigcommunity/wmaker] --> V
+  V --> B[buildiso<br/>motor BigLinux]
   B --> ISO[(ISO)]
   ISO --> S[smoke test<br/>QEMU BIOS e UEFI]
-  ISO --> I[instalação<br/>Calamares + login]
+  ISO --> I[instalação<br/>Calamares + login wdm]
   S --> REL[pre-release]
   I --> REL
 ```
@@ -115,10 +124,19 @@ semanal (segunda-feira, 05:17 UTC, ISO *testing* com os valores padrão).
 |---|---|---|
 | `lint` | `contents: read`, sem contêiner | Valida as entradas (regex/allowlist); faz checkout de `big-windowmaker/iso-profiles` no ref pedido e fixa o SHA resultante para os jobs seguintes; confere os links simbólicos de `bigcommunity/wmaker` (`scripts/check-symlinks.sh`); confere que os pacotes esperados estão em `Packages-Desktop`; roda `pytest tests/` do iso-profiles; `bash -n` e `shellcheck` em `scripts/`. |
 | `local-repo` | `contents: read`, `actions: read` | Baixa os pacotes dos artefatos de CI (`scripts/fetch-package-artifacts.sh`), monta o repositório `[bigwm-local]` com `repo-add` num contêiner Manjaro **sem rede** (`scripts/make-local-repo.sh`) e o publica como artefato (retenção de 3 dias). |
+| `resolve` | `contents: read` | Simula, num contêiner Manjaro com `[bigwm-local]` na frente, a instalação de `Packages-Root`, `Packages-Desktop` e `Packages-Live` da edição (`scripts/resolve-edition.sh`, com o pacman de verdade: a Cloudflare do `repo.communitybig.org` barra o `curl` dos runners). Um pacote que não resolve reprova em minutos, antes do build; o resultado vai para o resumo do run. |
 | `build` | `contents: read`; contêiner `--privileged` | Roda `build-iso/build-iso.sh` de `biglinux/iso-profiles` **fixado por commit** (`ENGINE_SHA`) no **mesmo contêiner, fixado pelo mesmo digest**, que o workflow *Build ISO* da BigLinux usa, com `PROFILES_ROOT` apontando para o checkout dos perfis, `DISTRONAME=bigcommunity`, `EDITION=wmaker`. Injeta `[bigwm-local]` logo antes do `buildiso` (`scripts/run-engine.sh`). Gera `.iso`, `.iso.sha256`, `.iso.pkgs` (lista de pacotes), o manifesto do repositório local e `.build-info` (commits do motor e dos perfis); confere que a ISO recebeu as versões do repositório local (`scripts/check-iso-packages.sh`). Artefato com retenção de 3 dias. |
 | `smoke-test` | `contents: read` | Boot da ISO em QEMU/KVM, BIOS e UEFI (OVMF), até a sessão live, e prova de que a sessão Window Maker é utilizável (`scripts/smoke-test.sh`; critérios abaixo). Logs e capturas de tela ficam como artefato por 7 dias. |
-| `install-test` | `contents: read` | Instalação real pelo Calamares (BIOS e UEFI): "Apagar disco", usuário, instalação, reinício pelo disco instalado, login no LightDM, sessão `big-wm` e saúde do sistema, com o harness openQA da BigLinux fixado por SHA + patches e overlay deste repositório (`scripts/install-test.sh`, [`openqa/README.md`](openqa/README.md)). Resultados, logs do Calamares, capturas e vídeo ficam como artefato `install-<firmware>-<run>` por 7 dias. |
-| `release` | `contents: write`, environment `iso-release` | Só em `workflow_dispatch` com `publish: true` e depois do smoke test e do teste de instalação aprovados nos dois firmwares: confere o sha256, gera `SHA256SUMS`, divide a ISO em partes 7z se passar de 2 GiB (limite por asset) e cria uma **pre-release** com `gh release create`. |
+| `install-test` | `contents: read` | Instalação real pelo Calamares (BIOS e UEFI): "Apagar disco", usuário, instalação, reinício pelo disco instalado, login pelo wdm, sessão `big-wm`, atualização, sessão Wayland (experimental) e saúde do sistema, com o harness openQA da BigLinux fixado por SHA + patches e overlay deste repositório (`scripts/install-test.sh`, [`openqa/README.md`](openqa/README.md)). Resultados, logs do Calamares, capturas e vídeo ficam como artefato `install-<firmware>-<run>` por 7 dias. |
+| `release` | `contents: write`, environment `iso-release` | Só em `workflow_dispatch` com `publish: true` e depois do smoke test e do teste de instalação aprovados nos dois firmwares: confere o sha256, gera `SHA256SUMS`, divide a ISO em partes 7z se passar de 2 GiB (limite por asset) e cria uma **pre-release** (`scripts/publish-release.sh`). |
+
+Outros workflows:
+
+| Workflow | Gatilho | O que faz |
+|---|---|---|
+| `publish-release.yml` (*Publicar ISO aprovada*) | `workflow_dispatch` com `run_id` | Publica como pre-release a ISO de um run do `build-iso.yml` que já passou, sem refazer o pipeline: confere pela API que os jobs `ISO`, `Smoke test (bios/uefi)` e `Instalação (bios/uefi)` daquele run terminaram com `success`, baixa o artefato `iso-<run_id>` e chama o mesmo `scripts/publish-release.sh`. Roda no environment `iso-release`. |
+| `diagnose-repos.yml` (*Diagnóstico dos repositórios*) | `workflow_dispatch` | Mostra o que os servidores da BigLinux e da BigCommunity respondem a um runner (status, cabeçalhos `cf-*`), com e sem o user-agent do pacman. |
+| `mirror-openqa-image.yml` | `workflow_dispatch` | Copia a imagem do `isotovideo` usada pelo teste de instalação para o `ghcr.io/big-windowmaker`, fixada por digest em `openqa/upstream.env`. |
 
 Entradas do `workflow_dispatch`:
 
@@ -152,19 +170,36 @@ big-windowmaker/packages  build.yml  packages-wlmaker
 big-windowmaker/packages  build.yml  packages-big-dockapps
 big-windowmaker/packages  build.yml  packages-biglinux-livecd
 big-windowmaker/packages  build.yml  packages-gtk-nocsd
+big-windowmaker/packages  build.yml  packages-qtstep-kvantum
+big-windowmaker/packages  build.yml  packages-onestepback-gtk-theme
+big-windowmaker/packages  build.yml  packages-retrothemes-firefox
+big-windowmaker/packages  build.yml  packages-wdm
 big-windowmaker/packages  build.yml  packages-wmake-zones
 big-windowmaker/packages  build.yml  packages-wmpulsemixer
 big-windowmaker/packages  build.yml  packages-thunar-git
 big-windowmaker/packages  build.yml  packages-libxfce4ui
 ```
 
+| Repositório de origem | Workflow | O que entra na ISO |
+|---|---|---|
+| [big-wm](https://github.com/big-windowmaker/big-wm) | `ci.yml` | sessões X11 e Wayland, temas, nome do sistema, tela de bloqueio, temas do GRUB e do Plymouth |
+| [tabbed-dock](https://github.com/big-windowmaker/tabbed-dock) | `ci.yml` | o Dock com Abas e o controlador dele |
+| [big-wm-display-resolution](https://github.com/big-windowmaker/big-wm-display-resolution) | `ci.yml` | Configurações > Monitores |
+| [big-keyboard](https://github.com/big-windowmaker/big-keyboard) | `ci.yml` | o teclado virtual |
+| [packages](https://github.com/big-windowmaker/packages) | `build.yml` | Window Maker, wlmaker, dockapps, wdm, wmake-zones, wmpulsemixer, temas retrô, gtk-nocsd, Thunar (com o libxfce4ui 4.21) e o `biglinux-livecd` |
+
 `big-windowmaker/packages` publica um artefato por diretório de pacote
 (`packages-<diretório>`). `EXPECTED_PACKAGES` lista o que precisa sair do
-repositório local e estar na ISO (big-wm-session, big-wm-wayland,
-big-wm-themes, big-wm-tabbed-dock (o Dock com Abas e o controlador dele, do
-repositório tabbed-dock), windowmaker, wlmaker, wmake-zones, os dockapps (com o
-wmpulsemixer, o volume padrão do Dock),
-biglinux-livecd e gtk-nocsd); faltar qualquer um é erro.
+repositório local e estar na ISO: big-wm-session, big-wm-wayland,
+big-wm-themes, big-wm-name, big-wm-lockscreen, grub-theme-big-wm,
+plymouth-theme-big-wm, big-wm-tabbed-dock, big-wm-display-resolution,
+big-keyboard, windowmaker, wlmaker, wmake-zones, wdm, thunar-git, os temas
+(qtstep-kvantum, onestepback-gtk-theme, retrothemes-firefox), gtk-nocsd,
+biglinux-livecd e os dockapps (com o wmpulsemixer, o volume padrão do
+Dock). O lint confere que cada um está nas listas do perfil e o build, que
+a ISO recebeu a versão do repositório local; faltar qualquer um é erro. O
+`libxfce4ui` fica de fora da lista de propósito: é só dependência do
+`thunar-git` (pede `>= 4.21.8`; o `[extra]` tem a 4.20).
 
 Para cada fonte, `fetch-package-artifacts.sh` escolhe o artefato mais recente
 que: tem o nome exato e não expirou; vem de um run do workflow indicado; do
@@ -259,8 +294,9 @@ enviado à VM pela serial):
 
 9. **EWMH**: `_NET_SUPPORTING_WM_CHECK` aponta para "Window Maker" (o WM
    gerencia o display `:0`).
-10. **Dock**: wmclock, wmsystemtray, wmix, wmcpuload, wmmemload e wmnet
-    rodando (AutoLaunch do `WMState` padrão).
+10. **Dock**: wmclock, wmsystemtray, wmpulsemixer (ou o wmix, se o usuário
+    o deixou no lugar), wmcpuload, wmmemload e wmnet rodando (AutoLaunch do
+    `WMState` padrão).
 11. **Menu raiz**: F12 abre o menu do Window Maker (a tela muda).
 12. **Terminal**: `xdg-terminal-exec` abre uma janela nova gerenciada pelo WM
     e ela **aparece na tela** (`terminal-visivel`: a captura de antes e a de
@@ -286,8 +322,8 @@ entrada editada, boot, final e `30-area-de-trabalho`, `31-menu-raiz`,
 Rodar localmente (sem root; precisa de `/dev/kvm`):
 
 ```bash
-scripts/smoke-test.sh --iso bigcommunity_TESTING_wmaker_*.iso --firmware bios --out /tmp/smoke-bios
-scripts/smoke-test.sh --iso bigcommunity_TESTING_wmaker_*.iso --firmware uefi --out /tmp/smoke-uefi \
+scripts/smoke-test.sh --iso big-windowmaker_*.iso --firmware bios --out /tmp/smoke-bios
+scripts/smoke-test.sh --iso big-windowmaker_*.iso --firmware uefi --out /tmp/smoke-uefi \
   --ovmf-code /usr/share/edk2/x64/OVMF_CODE.4m.fd --ovmf-vars /usr/share/edk2/x64/OVMF_VARS.4m.fd
 ```
 
@@ -295,7 +331,9 @@ scripts/smoke-test.sh --iso bigcommunity_TESTING_wmaker_*.iso --firmware uefi --
 
 `scripts/install-test.sh` instala a ISO pelo Calamares numa VM (particionamento
 automático, usuário com senha aleatória), reinicia pelo disco instalado, faz
-login no LightDM e confere a sessão `big-wm`, o Dock e a saúde do sistema. Usa
+login pela tela do wdm (`wdmLogin`, como no live) e confere a sessão `big-wm`,
+o Dock, a saúde do sistema, um `pacman -Syu` e a sessão Wayland
+(experimental: falha vira *softfail*). Usa
 o harness openQA da BigLinux (`biglinux/iso-profiles`, fixado por commit em
 `openqa/upstream.env`) com patches mínimos e um overlay deste repositório;
 detalhes, lista de módulos e limites em [`openqa/README.md`](openqa/README.md).
@@ -320,8 +358,45 @@ gh workflow run build-iso.yml -R big-windowmaker/build-iso \
 ```
 
 Antes de rodar, os CIs de origem precisam ter um run de push em `main` bem
-sucedido com artefatos não expirados (ver *Limites*). O build leva de 1 a 4
-horas.
+sucedido com artefatos não expirados (ver *Limites*). Como o `packages`
+compila só os diretórios alterados, cada artefato pode vir de um run
+diferente. O escolhido para cada fonte é o do run mais recente de push em
+`main`, concluído com sucesso, que tenha aquele artefato ainda válido:
+
+```bash
+# runs elegíveis, do mais novo ao mais antigo
+gh run list -R big-windowmaker/packages -w build.yml -b main -e push -s success -L 20
+# artefatos ainda válidos de um desses runs
+gh api repos/big-windowmaker/packages/actions/runs/<run>/artifacts \
+  --jq '.artifacts[] | select(.expired | not) | .name'
+```
+
+O que a ISO recebeu de fato fica em `bigwm-local.sources.tsv` (repositório,
+run, commit e digest de cada artefato), no artefato `iso-<run_id>` e na
+release.
+
+O pipeline completo (build, smoke tests e instalação nos dois firmwares)
+leva de meia hora a algumas horas; o build sozinho tem limite de 300 min.
+
+Para publicar uma ISO já aprovada sem gerar outra:
+
+```bash
+gh workflow run publish-release.yml -R big-windowmaker/build-iso -f run_id=<id do run>
+```
+
+## Baixar a ISO de um run
+
+Cada run guarda a ISO candidata (`iso-<run_id>`: `.iso`, `.iso.sha256`,
+`.iso.pkgs`, `.build-info` e `bigwm-local.sources.tsv`) e o repositório local
+(`bigwm-local-<run_id>`) por 3 dias; os logs e capturas dos testes
+(`smoke-<firmware>-<run_id>`, `install-<firmware>-<run_id>`) por 7.
+
+```bash
+gh run list -R big-windowmaker/build-iso -w build-iso.yml -L 5
+gh run download <run_id> -R big-windowmaker/build-iso -n iso-<run_id> -D iso
+gh run download <run_id> -R big-windowmaker/build-iso -n smoke-uefi-<run_id> -D smoke-uefi
+cd iso && sha256sum -c ./*.iso.sha256
+```
 
 ## Configuração necessária do repositório
 
@@ -333,8 +408,8 @@ horas.
   (o workflow declara `permissions: {}` e concede o mínimo por job; só
   `release` recebe `contents: write`).
 - **Secret opcional `ARTIFACTS_READ_TOKEN`**: token *fine-grained* (ou de um
-  GitHub App) somente leitura de **Actions** em `big-windowmaker/big-wm` e
-  `big-windowmaker/packages`. Usado só no job `local-repo` (ver *Limites*).
+  GitHub App) somente leitura de **Actions** nos repositórios de
+  `PACKAGE_SOURCES`. Usado só no job `local-repo` (ver *Limites*).
 - Proteção do branch `main` e `CODEOWNERS` (regra 8 do relatório 04).
 - Dependabot (`.github/dependabot.yml`) mantém os SHAs das actions.
 
@@ -369,9 +444,12 @@ produto, em vez da injeção feita aqui.
   token com `actions: read` no repositório de origem. O job tenta com
   `ARTIFACTS_READ_TOKEN` e, se ele não existir, com o `GITHUB_TOKEN`; se o
   download falhar, configure o secret.
-- **Retenção.** `big-wm` guarda o artefato por 7 dias e `packages` por 14. Sem
-  push recente em `main`, não há artefato válido: rode o CI de origem de novo
-  (o `ci.yml` do `big-wm` não tem `workflow_dispatch`; adicioná-lo facilitaria).
+- **Retenção.** Os CIs de origem guardam os pacotes por 30 dias. Só vale o
+  artefato de um run disparado por push em `main` (um `workflow_dispatch`
+  não serve). No `packages`, que compila só os diretórios alterados, renovar
+  um artefato vencido (por exemplo, `packages-wdm`) exige um push que mude
+  aquele diretório (um `pkgrel` novo) ou `ci/`, que recompila todos; um
+  merge que mexe em outro pacote não o renova.
 - **`packages` compila só o que mudou.** Cada artefato `packages-<dir>` é
   procurado separadamente; os pacotes podem vir de runs diferentes. Um run de
   `packages` com qualquer perna da matriz falhando não é aceito (exige-se
@@ -395,8 +473,11 @@ produto, em vez da injeção feita aqui.
   do perfil (`boot_<distro> ... ${kopts}`); se o perfil mudar isso, o teste
   falha em "boot" e as capturas `01-grub-menu`/`02-grub-editada` mostram o
   motivo.
-- **Tamanho e tempo.** ISO de ~5 GB (dividida em partes 7z na release), build
-  de 1–4 h (timeout de 300 min), disco de `/mnt` do runner hospedado.
+- **Tamanho e tempo.** ISO de ~5 GB (na release, três partes 7z de até
+  2 GB, mais o manifesto do repositório local, a proveniência, a lista de
+  pacotes e o `.build-info`); o build leva de 20 min a algumas horas, conforme
+  o cache dos espelhos (timeout de 300 min), no disco `/mnt` do runner
+  hospedado.
 
 ## Atualizar fixações
 
