@@ -22,11 +22,13 @@ a ISO de verdade numa VM e iniciam o sistema instalado:
 5. **reinício pelo disco instalado** (o próprio Calamares reinicia; a ISO
    continua no drive e o QEMU só dá boot por ela uma vez) e login no console
    serial com a conta criada;
-6. **LightDM**: `lightdm` e `slick-greeter` rodando, senha digitada no
-   greeter, sessão gráfica X11 ativa do usuário com `wmaker`;
+6. **wdm**: `wdm` e `wdmLogin` rodando (`BIGLINUX_DISPLAY_MANAGER=wdm` e
+   `BIGLINUX_GREETER=wdmLogin` em `release-gate.yaml`); Enter no usuário da
+   lista, senha digitada, sessão gráfica X11 ativa do usuário com `wmaker`;
 7. **sessão instalada** (`bigwm_installed_session`): a sessão padrão é a
    `big-wm` (`startbigwm`, não o `wmaker.desktop` genérico), Dock completo,
-   terminal abre janela; a configuração do LightDM vai para os logs;
+   terminal abre janela; a configuração do LightDM (instalado, mas
+   desabilitado) vai para os logs;
 8. **métricas** (`bigwm_metrics`, informativo): saída literal de
    `scripts/vm-metrics.sh` como root — `systemd-analyze` e `blame`, `free -m`,
    número de processos, RSS dos processos do usuário e do `wmaker`, unidades
@@ -43,12 +45,12 @@ a ISO de verdade numa VM e iniciam o sistema instalado:
     WindowMaker (aceita só os `.desktop` que o `render-menu-options.sh` da
     BigLinux altera no primeiro boot) e reinício até `graphical.target` sem
     unidades com falha; saída em `ulogs/bigwm-update.txt`;
-12. **sessão Wayland** (`bigwm_wayland_session`, no sistema já atualizado): um drop-in só de teste
-    (`/etc/lightdm/lightdm.conf.d/99-openqa-wayland.conf`,
-    `autologin-session=big-wm-wayland`, usuário no grupo `autologin`) e um
-    reinício; confere `wlmaker` do usuário no backend DRM da VM, o socket
+12. **sessão Wayland** (`bigwm_wayland_session`, no sistema já atualizado):
+    grava `wayland/big-wm-wayland` como a sessão lembrada do usuário no wdm
+    (`/var/lib/wdm/sessions/<usuário>`), reinicia e entra pelo teclado (com
+    o LightDM, usaria um drop-in de login automático só de teste); confere `wlmaker` do usuário no backend DRM da VM, o socket
     `wayland-N`, o `Xwayland` e `Type=wayland` no logind, com captura de tela e
-    `ulogs/bigwm-wayland-*.txt` (LightDM, `~/.xsession-errors`, journal). Se
+    `ulogs/bigwm-wayland-*.txt` (wdm, LightDM, `~/.xsession-errors`, journal). Se
     falhar, tenta de novo só para diagnóstico (layout de teclado `(unset)` trocado
     por `us`; depois `WLR_RENDERER=pixman`), dizendo o que mudou. A
     sessão é experimental: a falha vira *softfail*, ou reprova com
@@ -91,7 +93,7 @@ Nada da BigLinux é copiado para este repositório. `scripts/install-test.sh`:
 | `0001-live-credentials` | `openqa/lib/biglinux.pm` | O usuário live era fixo `biglinux`/`biglinux`; vira `BIGLINUX_LIVE_USER`/`BIGLINUX_LIVE_PASSWORD` (Big WindowMaker: `bigwindowmaker`/`big`). |
 | `0002-simplified-wizard-optional-orca` | `openqa/tests/live_desktop.pm` | Com `BIGLINUX_WIZARD_SIMPLIFIED=1`, o assistente é idioma → teclado → "Escolha um estilo de tema" (sem a etapa de layout do Plasma). `BIGLINUX_ORCA=0` não inicia o Orca (a verificação de fala é do gate de acessibilidade da BigLinux, fora do escopo aqui). |
 | `0003-x11-session` | `data/desktop_session.py`, `openqa/lib/atspi.pm` | O harness exige sessão Wayland; com `BIGLINUX_SESSION_TYPE=x11` exige uma sessão X11 (`DISPLAY` local, socket `/tmp/.X11-unix/X<n>`) e recusa Wayland. |
-| `0004-installed-display-manager` | `openqa/lib/installed_system.pm` | `sddm`, `sddm-greeter`, `plasmashell` e `Type=wayland` viram `BIGLINUX_DISPLAY_MANAGER`, `BIGLINUX_GREETER`, `BIGLINUX_DESKTOP_SHELL` e `BIGLINUX_SESSION_TYPE` (aqui: `lightdm`, `slick-greeter`, `wmaker`, `x11`). |
+| `0004-installed-display-manager` | `openqa/lib/installed_system.pm` | `sddm`, `sddm-greeter`, `plasmashell` e `Type=wayland` viram `BIGLINUX_DISPLAY_MANAGER`, `BIGLINUX_GREETER`, `BIGLINUX_DESKTOP_SHELL` e `BIGLINUX_SESSION_TYPE` (aqui: `wdm`, `wdmLogin`, `wmaker`, `x11`). |
 | `0005-run-plan-setting` | `openqa/production/run-plan.sh` | `--setting KEY=VALUE` para ajustes locais (por exemplo `STORAGE_KEEP_FREE_RATIO=0` num `/tmp` pequeno). |
 
 Os patches são candidatos a contribuição para a BigLinux: não mudam nada
