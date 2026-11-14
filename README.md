@@ -356,13 +356,20 @@ gh workflow run build-iso.yml -R big-windowmaker/build-iso \
 ```
 
 Antes de rodar, os CIs de origem precisam ter um run de push em `main` bem
-sucedido com artefatos não expirados (ver *Limites*). Para conferir o que a
-ISO vai receber:
+sucedido com artefatos não expirados (ver *Limites*). Como o `packages`
+compila só os diretórios alterados, cada artefato pode vir de um run
+diferente; para ver qual seria escolhido para uma fonte (o mais recente,
+não expirado, de push em `main`):
 
 ```bash
-gh run list -R big-windowmaker/packages -w build.yml -b main -e push -L 3
-gh run list -R big-windowmaker/big-wm -w ci.yml -b main -e push -L 3
+gh api 'repos/big-windowmaker/packages/actions/artifacts?name=packages-wdm' \
+  --jq '.artifacts[] | select(.expired | not) | select(.workflow_run.head_branch == "main")
+        | "\(.created_at) run \(.workflow_run.id) \(.workflow_run.head_sha[:7])"'
 ```
+
+O que a ISO recebeu de fato fica em `bigwm-local.sources.tsv` (repositório,
+run, commit e digest de cada artefato), no artefato `iso-<run_id>` e na
+release.
 
 O pipeline completo (build, smoke tests e instalação nos dois firmwares)
 leva de meia hora a algumas horas; o build sozinho tem limite de 300 min.
@@ -433,10 +440,12 @@ produto, em vez da injeção feita aqui.
   token com `actions: read` no repositório de origem. O job tenta com
   `ARTIFACTS_READ_TOKEN` e, se ele não existir, com o `GITHUB_TOKEN`; se o
   download falhar, configure o secret.
-- **Retenção.** Os CIs de origem guardam os pacotes por 30 dias. Sem push
-  recente em `main`, não há artefato válido: o run precisa ser de `push` em
-  `main`, então um `workflow_dispatch` não serve; renove com um push (por
-  exemplo, o merge de um PR).
+- **Retenção.** Os CIs de origem guardam os pacotes por 30 dias. Só vale o
+  artefato de um run disparado por push em `main` (um `workflow_dispatch`
+  não serve). No `packages`, que compila só os diretórios alterados, renovar
+  um artefato vencido (por exemplo, `packages-wdm`) exige um push que mude
+  aquele diretório (um `pkgrel` novo) ou `ci/`, que recompila todos; um
+  merge que mexe em outro pacote não o renova.
 - **`packages` compila só o que mudou.** Cada artefato `packages-<dir>` é
   procurado separadamente; os pacotes podem vir de runs diferentes. Um run de
   `packages` com qualquer perna da matriz falhando não é aceito (exige-se
