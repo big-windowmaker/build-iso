@@ -44,16 +44,17 @@ fetch_one() {
     local repo=$1 workflow=$2 artifact=$3
     local candidates id run_id head_sha digest created run zip dest entries
 
-    # Até 100 artefatos com esse nome, do run mais novo para o mais antigo.
+    # Os artefatos com esse nome, do run mais novo para o mais antigo.
     # Ordenado pelo id do run, não do artefato: um run antigo executado de
     # novo (rerun) gera um artefato mais novo com o código antigo, e a ISO
     # de 14/11 saiu com o wmake-zones 0.4.0 em vez do 0.4.1 por isso. O id
     # do run é dado na criação e fica o mesmo num rerun.
-    candidates=$(gh api -X GET "repos/$repo/actions/artifacts" \
-        -f name="$artifact" -F per_page=100 \
-        | jq -r --arg b "$branch" '
-            .artifacts
-            | sort_by([.workflow_run.id, .id]) | reverse | .[]
+    # Todas as páginas antes de ordenar: a ordenação de uma página só não
+    # vê um run mais novo que caiu numa página seguinte.
+    candidates=$(gh api --paginate -X GET "repos/$repo/actions/artifacts" \
+        -f name="$artifact" -F per_page=100 --jq '.artifacts[]' \
+        | jq -rs --arg b "$branch" '
+            sort_by([.workflow_run.id, .id]) | reverse | .[]
             | select(.expired == false)
             | select(.workflow_run.head_branch == $b)
             | select(.workflow_run.head_repository_id == .workflow_run.repository_id)
