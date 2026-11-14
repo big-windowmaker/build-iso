@@ -74,7 +74,9 @@ instalação pelo Calamares e login no sistema instalado pelo wdm.
    é apagado).
 4. Na tela de login (wdm), escolha o usuário **bigwindowmaker**, senha
    **big** (F1 mostra a ajuda), e a sessão padrão *Big WindowMaker Live*: o
-   assistente pede idioma, teclado e tema e abre a área de trabalho. O ícone
+   assistente pede idioma, teclado e tema e abre a área de trabalho. As ISOs
+   publicadas até 12/11/2026 são anteriores ao wdm na live: entram sozinhas
+   pelo LightDM, com o usuário `community` (senha `big`). O ícone
    de instalação abre o Calamares. Problemas:
    [issues](https://github.com/big-windowmaker/build-iso/issues).
 
