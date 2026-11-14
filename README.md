@@ -146,6 +146,7 @@ no topo do workflow — uma fonte por linha, `<dono/repo> <workflow> <artefato>`
 big-windowmaker/big-wm    ci.yml     big-wm-packages
 big-windowmaker/tabbed-dock ci.yml   tabbed-dock-packages
 big-windowmaker/big-wm-display-resolution ci.yml display-resolution-packages
+big-windowmaker/big-keyboard ci.yml  big-keyboard-packages
 big-windowmaker/packages  build.yml  packages-windowmaker
 big-windowmaker/packages  build.yml  packages-wlmaker
 big-windowmaker/packages  build.yml  packages-big-dockapps
@@ -153,6 +154,8 @@ big-windowmaker/packages  build.yml  packages-biglinux-livecd
 big-windowmaker/packages  build.yml  packages-gtk-nocsd
 big-windowmaker/packages  build.yml  packages-wmake-zones
 big-windowmaker/packages  build.yml  packages-wmpulsemixer
+big-windowmaker/packages  build.yml  packages-thunar-git
+big-windowmaker/packages  build.yml  packages-libxfce4ui
 ```
 
 `big-windowmaker/packages` publica um artefato por diretório de pacote

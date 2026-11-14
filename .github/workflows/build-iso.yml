@@ -90,6 +90,7 @@ env:
     big-windowmaker/big-wm    ci.yml     big-wm-packages
     big-windowmaker/tabbed-dock ci.yml   tabbed-dock-packages
     big-windowmaker/big-wm-display-resolution ci.yml display-resolution-packages
+    big-windowmaker/big-keyboard ci.yml  big-keyboard-packages
     big-windowmaker/packages  build.yml  packages-windowmaker
     big-windowmaker/packages  build.yml  packages-wlmaker
     big-windowmaker/packages  build.yml  packages-big-dockapps
@@ -101,6 +102,10 @@ env:
     big-windowmaker/packages  build.yml  packages-wdm
     big-windowmaker/packages  build.yml  packages-wmake-zones
     big-windowmaker/packages  build.yml  packages-wmpulsemixer
+    big-windowmaker/packages  build.yml  packages-thunar-git
+    # dependência do thunar-git (>= 4.21.8; o extra tem a 4.20), por isso
+    # fora de EXPECTED_PACKAGES, que o lint confere nas listas do perfil
+    big-windowmaker/packages  build.yml  packages-libxfce4ui
   # Pacotes que precisam sair do repositório local e estar na ISO.
   EXPECTED_PACKAGES: >-
     big-wm-session big-wm-wayland big-wm-themes windowmaker wlmaker
@@ -110,6 +115,7 @@ env:
     qtstep-kvantum onestepback-gtk-theme retrothemes-firefox
     big-wm-tabbed-dock big-wm-display-resolution big-wm-lockscreen big-wm-name grub-theme-big-wm plymouth-theme-big-wm wdm wmake-zones wmpulsemixer wmeyes
     wmcalc wmcalclock wmcliphist wmclockmon wmcpufreq wmfsm wmglobe wmgtemp wmmon wmpager wmsun wmtime wmtop wmtz wmweather
+    big-keyboard thunar-git
   # Imagem usada só para rodar repo-add sem rede (manjarolinux/base, a mesma
   # de big-windowmaker/packages). O Dependabot não atualiza digests usados
   # em `run:`; atualizar à mão.
