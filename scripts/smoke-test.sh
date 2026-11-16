@@ -27,11 +27,11 @@
 #   2. O debug shell responde na serial 1  -> o kernel e o systemd subiram a
 #      partir da entrada padrão do GRUB (o GRUB/firmware funcionam).
 #   3. O gerenciador de login (display-manager.service, o wdm) fica "active"
-#      e a tela de login (wdmLogin) aparece.
+#      e a sessão live entra sozinha (wdmAutoLogin), sem a tela de login.
 #   4. Existe um processo Xorg.
-#   5. Existe uma sessão do logind para o usuário live: o teste entra pela
-#      tela do wdm como o usuário faria (Enter no usuário da lista, a senha
-#      da sessão live, Enter), na sessão padrão "Big WindowMaker Live".
+#   5. Existe uma sessão do logind para o usuário live, na sessão padrão
+#      "Big WindowMaker Live". (Sem o login automático, o teste entra pela
+#      tela do wdm para conferir o resto, e o item 3 falha.)
 #   6. O biglinux-livecd instalado tem o patch do Window Maker (startbiglive
 #      chama startbigwm). Sem ele a sessão live entra em loop no login.
 #      Pode ser rebaixado a aviso com --require-livecd-patch false.
@@ -395,9 +395,10 @@ probe=(
     'bwm_wait 60 systemctl is-active --quiet display-manager.service; echo "BWM""_DM=$(systemctl is-active display-manager.service)"'
     'dm=$(readlink -f /etc/systemd/system/display-manager.service); dm=${dm##*/}; echo "BWM""_DMNAME=${dm%.service}"'
     'bwm_wait 36 pgrep -x Xorg; echo "BWM""_XORG=$(bwm_yes pgrep -x Xorg)"'
-    'bwm_wait 36 pgrep -x wdmLogin; sleep 3; echo "BWM""_GREETER=$(bwm_yes pgrep -x wdmLogin)"'
+    'bwm_wait 36 bwm_session LIVEUSER; echo "BWM""_AUTOLOGIN=$(bwm_yes bwm_session LIVEUSER)"'
+    'echo "BWM""_GREETER=$(bwm_yes pgrep -x wdmLogin)"'
 )
-# Depois da tela de login: o teste entra pela tela, como o usuário.
+# Depois do login automático (ou, se ele falhar, do login pela tela).
 # shellcheck disable=SC2016
 probe_session=(
     'bwm_wait 36 bwm_session LIVEUSER; echo "BWM""_SESSION=$(bwm_yes bwm_session LIVEUSER)"'
@@ -413,17 +414,19 @@ for line in "${probe[@]}"; do
     guest "${line//LIVEUSER/$live_user}"
     sleep 0.3
 done
-log "Aguardando a tela de login do wdm"
+log "Aguardando o login automático da sessão live (wdmAutoLogin)"
 # Mais que o orçamento das sondas no convidado (display-manager 300 s, Xorg
-# 180 s, wdmLogin 183 s = 663 s): a tela que chega no fim dele não se perde.
+# 180 s, sessão 180 s = 660 s): a sessão que chega no fim dele não se perde.
 greeter_deadline=$((SECONDS + 720))
 while [[ -z "$(marker GREETER)" ]] && ((SECONDS < greeter_deadline)); do
     alive
     sleep 5
 done
-screendump 25-tela-de-login
-if [[ "$(marker GREETER)" == yes ]]; then
-    # O usuário live já vem escolhido na lista: Enter, a senha, Enter.
+screendump 25-login-automatico
+if [[ "$(marker AUTOLOGIN)" != yes && "$(marker GREETER)" == yes ]]; then
+    # Sem login automático, a tela do wdm: entra por ela para as outras
+    # sondas (o login automático fica como FAIL). Usuário já escolhido na
+    # lista: Enter, a senha, Enter.
     sendkey ret
     sleep 1
     type_text "$live_password"
@@ -444,7 +447,7 @@ while [[ "$(marker DONE)" != 1 ]]; do
 done
 screendump 90-final
 
-dm=$(marker DM) dmname=$(marker DMNAME) greeter=$(marker GREETER) xorg=$(marker XORG) session=$(marker SESSION)
+dm=$(marker DM) dmname=$(marker DMNAME) autologin=$(marker AUTOLOGIN) xorg=$(marker XORG) session=$(marker SESSION)
 patch=$(marker LIVECD_PATCH) wizard=$(marker WIZARD) wmaker=$(marker WMAKER)
 failed_units=$(marker FAILED_UNITS)
 
@@ -456,10 +459,10 @@ if [[ "$dm" == active && "$dmname" == wdm ]]; then
 else
     record FAIL wdm "display-manager.service: ${dm:-sem resposta} (${dmname:-?}; esperado wdm)"
 fi
-if [[ "$greeter" == yes ]]; then
-    record PASS tela-de-login "wdmLogin na tela"
+if [[ "$autologin" == yes ]]; then
+    record PASS login-automatico "sessão live de $live_user sem a tela de login"
 else
-    record FAIL tela-de-login "a tela de login do wdm não apareceu"
+    record FAIL login-automatico "a sessão live não entrou sozinha (wdmAutoLogin)"
 fi
 if [[ "$xorg" == yes ]]; then
     record PASS xorg "processo Xorg presente"
@@ -469,7 +472,7 @@ fi
 if [[ "$session" == yes ]]; then
     record PASS sessao-live "sessão logind de $live_user"
 else
-    record FAIL sessao-live "sem sessão logind de $live_user (o login pela tela do wdm falhou)"
+    record FAIL sessao-live "sem sessão logind de $live_user"
 fi
 
 check_wmaker=true
