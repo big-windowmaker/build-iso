@@ -28,9 +28,10 @@ my @install = map { "openqa/tests/$_.pm" } qw(
     installed_boot installed_login bigwm_installed_session bigwm_metrics
     installed_health installed_security bigwm_update bigwm_wayland_session
 );
-# A sessão live do Big WindowMaker entra pela tela do wdm (bigwm_live_login)
-# antes do assistente (live_desktop); as outras edições têm login automático.
-my @live = map { "openqa/tests/$_.pm" } qw(bigwm_live_login live_desktop bigwm_live_session);
+# A sessão live do Big WindowMaker entra direto pelo wdm (wdmAutoLogin, sem
+# a tela de login): o live_desktop, que espera o assistente aberto, só passa
+# se o login automático funcionou.
+my @live = map { "openqa/tests/$_.pm" } qw(live_desktop bigwm_live_session);
 
 my %schedules = (
     # Só a sessão live: falha em minutos; útil numa ISO nova.

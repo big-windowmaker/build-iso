@@ -5,9 +5,9 @@ a ISO de verdade numa VM e iniciam o sistema instalado:
 
 1. boot da ISO (GRUB → entrada padrão) e login no console serial `hvc0` com o
    usuário live (`bigwindowmaker`/`big`);
-   **login pela tela do wdm** (`bigwm_live_login`): a sessão live não tem
-   login automático; Enter no usuário da lista, a senha live, Enter, na
-   sessão padrão "Big WindowMaker Live";
+   a sessão live entra direto pelo wdm (`wdmAutoLogin`, sem a tela de login)
+   na sessão padrão "Big WindowMaker Live"; o assistente só abre se o login
+   automático funcionou;
 2. **assistente live** (GTK4): idioma por busca ("Brazil"), teclado e estilo de
    tema claro/escuro — a edição Window Maker é um ambiente "simplificado",
    sem a etapa de layout do Plasma;
