@@ -91,6 +91,7 @@ jobs:
           TAG: ${{ steps.publicar.outputs.tag }}
         run: |
           set -euo pipefail
+          sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/org
           git clone --quiet --depth 1 https://github.com/big-windowmaker/.github.git /mnt/org
           python3 -I scripts/org-readme.py --tag "$TAG" --repo "$GITHUB_REPOSITORY" /mnt/org/profile/README.md
           {

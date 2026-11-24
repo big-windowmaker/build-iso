@@ -387,10 +387,11 @@ gh workflow run publish-release.yml -R big-windowmaker/build-iso -f run_id=<id d
 Depois de publicar, o mesmo workflow gera o trecho "Baixar a ISO" do README da
 organização (links, data, tamanhos, partes e o SHA-256 lido do `SHA256SUMS`
 da release): a diferença fica no resumo do run e o README completo no
-artefato `readme-org-<tag>`. Para aplicar num clone de `big-windowmaker/.github`:
+artefato `readme-org-<tag>`. Para aplicar num clone de `big-windowmaker/.github`
+(troque a tag pela que foi publicada):
 
 ```bash
-python3 scripts/org-readme.py --tag <tag> ../.github/profile/README.md
+python3 scripts/org-readme.py --tag big-windowmaker_TESTING_2026-11-24_k618-r62 ../.github/profile/README.md
 ```
 
 ## Baixar a ISO de um run
