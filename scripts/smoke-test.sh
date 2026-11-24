@@ -349,6 +349,13 @@ next_dump=$((SECONDS + 60))
 n=0
 while ((SECONDS < deadline)); do
     alive
+    # Ctrl-C antes: um ping que chega enquanto o shell sobe pode perder o
+    # começo (a consulta do tamanho do terminal, ESC[6n, come os caracteres)
+    # e deixar uma aspa aberta; sem descartar a linha, os pings seguintes
+    # caem todos dentro dela (r61, smoke BIOS: o shell subiu aos 5 s e
+    # nunca respondeu).
+    printf '\003\n' >&"$ser_fd"
+    sleep 0.5
     guest 'echo "BWM""_PING=ok"'
     sleep 10
     if [[ "$(marker PING)" == ok ]]; then
