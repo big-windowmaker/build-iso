@@ -2,7 +2,8 @@
 #
 #   lint        sem privilégios: valida as entradas, confere links simbólicos
 #               da edição, roda os testes pytest do iso-profiles, bash -n e
-#               shellcheck nos scripts deste repositório.
+#               shellcheck nos scripts deste repositório (e o self-test do
+#               org-readme.py).
 #   local-repo  baixa os pacotes dos artefatos de CI de big-windowmaker/big-wm
 #               e big-windowmaker/packages e monta o repositório local
 #               [bigwm-local] (NÃO assinado: somente ISOs de teste).
@@ -192,6 +193,7 @@ jobs:
           done
           shellcheck --version
           shellcheck ci/scripts/*.sh
+          python3 -I ci/scripts/org-readme.py --self-test
 
       - name: Links simbólicos da edição
         run: bash ci/scripts/check-symlinks.sh profiles "$DISTRONAME/$EDITION"
