@@ -67,6 +67,7 @@ jobs:
           ls -la /mnt/release
 
       - name: Publicar
+        id: publicar
         env:
           GH_TOKEN: ${{ github.token }}
           NUMBER: ${{ steps.run.outputs.number }}
@@ -78,6 +79,35 @@ jobs:
           [[ "$iso" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]] || { echo "::error::ISO não encontrada"; exit 1; }
           url=$(bash scripts/publish-release.sh /mnt/release "$iso" "${iso%.iso}-r$NUMBER" "$DEFAULT_BRANCH")
           echo "Pre-release publicada: $url" >> "$GITHUB_STEP_SUMMARY"
+          echo "tag=${iso%.iso}-r$NUMBER" >> "$GITHUB_OUTPUT"
+
+      # O README da organização (big-windowmaker/.github) não aceita push daqui
+      # (o GITHUB_TOKEN só escreve neste repositório). O trecho de download sai
+      # pronto, com o SHA-256 lido do SHA256SUMS publicado: o README completo
+      # vai como artefato e a diferença no resumo, para um PR sem digitar somas.
+      - name: Trecho "Baixar a ISO" do README da organização
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.publicar.outputs.tag }}
+        run: |
+          set -euo pipefail
+          sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/org
+          git clone --quiet --depth 1 https://github.com/big-windowmaker/.github.git /mnt/org
+          python3 -I scripts/org-readme.py --tag "$TAG" --repo "$GITHUB_REPOSITORY" /mnt/org/profile/README.md
+          {
+            echo "### README da organização (profile/README.md)"
+            echo
+            echo '```diff'
+            git -C /mnt/org diff
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar o README da organização atualizado
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: readme-org-${{ steps.publicar.outputs.tag }}
+          path: /mnt/org/profile/README.md
+          retention-days: 30
 
       - name: Guardar a resposta da API em caso de falha
         if: failure()
