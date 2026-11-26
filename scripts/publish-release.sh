@@ -28,6 +28,7 @@ dir=$1 iso=$2 tag=$3 target=$4
 [[ "$target" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$ && "$target" != *..* ]] || die "branch inválido: $target"
 [[ -n "${GITHUB_REPOSITORY:-}" ]] || die "GITHUB_REPOSITORY não definido"
 
+scripts=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "$dir"
 sha256sum --check --strict -- "$iso.sha256"
 
@@ -52,13 +53,9 @@ cat SHA256SUMS
     echo "- Aprovada no smoke test em QEMU (BIOS e UEFI) e no teste de instalação pelo Calamares (BIOS e UEFI): instalação, boot pelo disco, login, sessões X11 e Wayland."
     echo "- Modo live: entra direto, sem tela de login. Ao sair da sessão, a tela do wdm pede usuário \`bigwindowmaker\`, senha \`big\` (F1 mostra)."
     echo
-    echo "### Novidades desta Alpha"
-    echo
-    echo "- Dockapps acoplados no Dock ou no Clip iniciam com a sessão (Window Maker 12)."
-    echo "- Histórico da área de transferência (Super+V) que sobrevive ao reinício, com busca, favoritos e privacidade, no X11 e no Wayland."
-    echo "- Mosaico confiável em vários monitores e dockapp que mostra o modo (wmake-zones 0.3.1, wlmaker 18)."
-    echo "- Tela de bloqueio OPENSTEP com teclado na tela no Wayland."
-    echo "- Barras de título do Window Maker no VSCodium; nome e logo do Big WindowMaker para programas de fora."
+    # Gerado a cada publicação (versões dos pacotes e PRs desde a ISO
+    # anterior): o texto fixo que havia aqui ficou semanas desatualizado.
+    bash "$scripts/release-notes.sh" "$iso.bigwm-local.manifest"
     echo
     echo "Desenvolvimento: Rafael Ruscher <rruscher@gmail.com> e Barnabé Di Kartola <barnabedikartola@gmail.com>."
     echo
