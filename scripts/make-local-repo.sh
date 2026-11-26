@@ -88,7 +88,7 @@ Repositório pacman local [$REPO_NAME] - SOMENTE PARA ISOs DE TESTE.
 Pacotes e banco NÃO são assinados. Use apenas como Server = file://... com
 SigLevel = Optional TrustAll restrito a esta seção, dentro do contêiner de
 build de ISO. Nunca publique este diretório como repositório remoto.
-A assinatura (chave própria + bigwm-keyring) é a fase 2; ver README.md.
+O repositório assinado é o [big-wm] (github.com/big-windowmaker/repo).
 EOF
 
 printf 'make-local-repo.sh: %d pacote(s) em %s\n' "${#seen[@]}" "$out"

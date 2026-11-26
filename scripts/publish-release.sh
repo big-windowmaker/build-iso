@@ -49,7 +49,7 @@ cat SHA256SUMS
     echo
     echo "Sessão padrão: Big WindowMaker — X11 (Window Maker). Sessão experimental: Big WindowMaker — Wayland (wlmaker)."
     echo
-    echo "- Os pacotes do Big WindowMaker vêm de um repositório local **não assinado** ([bigwm-local]), montado a partir de artefatos de CI. Repositório e chave próprios são a fase 2."
+    echo "- A ISO é montada com os pacotes do Big WindowMaker dos artefatos de CI ([bigwm-local], só no build). O sistema instalado recebe as atualizações deles pelo repositório assinado [big-wm] (https://github.com/big-windowmaker/repo), já configurado: \`sudo pacman -Syu\`."
     echo "- Aprovada no smoke test em QEMU (BIOS e UEFI) e no teste de instalação pelo Calamares (BIOS e UEFI): instalação, boot pelo disco, login, sessões X11 e Wayland."
     echo "- Modo live: entra direto, sem tela de login. Ao sair da sessão, a tela do wdm pede usuário \`bigwindowmaker\`, senha \`big\` (F1 mostra)."
     echo
