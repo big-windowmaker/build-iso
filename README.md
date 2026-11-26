@@ -429,13 +429,12 @@ cd iso && sha256sum -c ./*.iso.sha256
 
 Conforme o relatório 04 (seções 4 e 7) e a ADR-0001 (D5):
 
-**Fase 1 (agora).** A edição `bigcommunity/wmaker` vive no fork
-`big-windowmaker/iso-profiles` (branch `main`) até ser aceita em
-`big-comm/iso-profiles`; os pacotes genéricos devem ir para os repositórios
-`community-*`, assinados pela BigCommunity. Enquanto isso não acontece, este
-repositório gera **apenas ISOs de teste** com o repositório local não
-assinado. Nenhum segredo é usado no build; a ISO tem `.sha256` e
-`SHA256SUMS`, sem assinatura.
+**Fase 1.** A edição `bigcommunity/wmaker` vive no fork
+`big-windowmaker/iso-profiles` (branch `main`). Desde 2026-11-26 isso é
+definitivo: a edição não será enviada ao `big-comm/iso-profiles`, e os
+pacotes vão para o repositório próprio `[big-wm]`, não para os `community-*`.
+O build monta a ISO com o repositório local não assinado e não usa segredos;
+a ISO tem `.sha256` e `SHA256SUMS`, sem assinatura.
 
 **Fase 2 (em andamento).** Feito em 2026-11-26: chave própria, `big-wm-keyring`
 e o repositório assinado [`[big-wm]`](https://github.com/big-windowmaker/repo)
