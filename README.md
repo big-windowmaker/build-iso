@@ -35,10 +35,12 @@ Pipeline do GitHub Actions que gera a ISO live da edição **Big WindowMaker**
 sem modificá-lo, e a testa de verdade: boot BIOS e UEFI até a sessão live,
 instalação pelo Calamares e login no sistema instalado pelo wdm.
 
-> **Somente teste.** Os pacotes do Big WindowMaker ainda não estão num
-> repositório público assinado: a ISO usa um repositório local **não
-> assinado** (`[bigwm-local]`), montado com os artefatos de CI dos outros
-> repositórios, e é publicada só como *pre-release* (Alpha), sem assinatura.
+> **Alpha.** A ISO é montada com um repositório local **não assinado**
+> (`[bigwm-local]`, os artefatos de CI dos outros repositórios), que só existe
+> no build, e é publicada como *pre-release*. O sistema instalado atualiza os
+> pacotes do Big WindowMaker pelo repositório **assinado**
+> [`[big-wm]`](https://github.com/big-windowmaker/repo), conferido pelo openQA
+> em cada build (`bigwm_update`).
 
 > **Sessão live (resolvido).** A sessão live só chega ao Window Maker com o
 > patch do `biglinux-livecd` em que o `startbiglive` executa o `startbigwm`;
@@ -435,7 +437,11 @@ repositório gera **apenas ISOs de teste** com o repositório local não
 assinado. Nenhum segredo é usado no build; a ISO tem `.sha256` e
 `SHA256SUMS`, sem assinatura.
 
-**Fase 2.** Chave própria (primária offline, **subchave só de assinatura** com
+**Fase 2 (em andamento).** Feito em 2026-11-26: chave própria, `big-wm-keyring`
+e o repositório assinado [`[big-wm]`](https://github.com/big-windowmaker/repo)
+no `pacman.conf` do sistema instalado. Falta o resto:
+
+Chave própria (primária offline, **subchave só de assinatura** com
 validade no secret do environment `iso-release`), pacote `bigwm-keyring`,
 repositório `bigwm-*` com banco assinado (`repo-add --sign`,
 `SigLevel = Required` só nessas seções), `SHA256SUMS.sig`, atestado de
