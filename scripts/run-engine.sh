@@ -141,17 +141,37 @@ bigwm_edition_pacman_conf() {
     local own="$PROFILES_ROOT/$DISTRONAME/$EDITION/root-overlay/etc/pacman.conf"
     [[ -f "$own" && ! -L "$own" && -f "$shared" ]] || return 0
     msg "big-windowmaker: repositórios do shared/pacman.conf no pacman.conf da edição"
-    local ignore merged
+    local ignore bigwm merged
     ignore=$(grep -E '^[[:space:]]*IgnorePkg[[:space:]]*=' "$own" || true)
+    # O repositório assinado [big-wm] da edição (com o comentário logo acima)
+    # vem antes de todos os do shared: para um nome que existe nos dois (o
+    # windowmaker também está no extra), o pacman usa o primeiro. Sem isto o
+    # sistema instalado saía sem o [big-wm] (openQA bigwm_update, r66).
+    bigwm=$(awk '
+        /^\[big-wm\]$/ { inblock = 1; printf "%s", buf }
+        inblock && /^[[:space:]]*$/ { exit }
+        inblock { print; next }
+        /^#/ { buf = buf $0 "\n"; next }
+        { buf = "" }' "$own")
     merged=$(mktemp)
-    awk -v ignore="$ignore" '
+    # Os comentários logo acima do primeiro repositório ficam com ele: o
+    # [big-wm] entra antes deles.
+    awk -v ignore="$ignore" -v bigwm="$bigwm" '
+        function flush() { printf "%s", buf; buf = "" }
         /^\[options\]/ { opts = 1 }
         opts && !done && (/^#?IgnorePkg/ || /^\[/ && !/^\[options\]/) {
+            flush()
             if (ignore != "") print ignore
             done = 1
         }
-        /^\[/ && !/^\[options\]/ { opts = 0 }
-        { print }' "$shared" >"$merged"
+        /^\[/ && !/^\[options\]/ {
+            opts = 0
+            if (bigwm != "" && !repo) { print bigwm; print "" }
+            repo = 1
+        }
+        /^#/ && !repo { buf = buf $0 "\n"; next }
+        { flush(); print }
+        END { flush() }' "$shared" >"$merged"
     cat "$merged" >"$own"
     rm -f "$merged"
     local section
@@ -159,6 +179,10 @@ bigwm_edition_pacman_conf() {
         assert_present "^\\[$section\\]" "$own"
     done
     [[ -z "$ignore" ]] || assert_present '^[[:space:]]*IgnorePkg[[:space:]]*=' "$own"
+    if [[ -n "$bigwm" ]]; then
+        [[ "$(grep -v '^\[options\]' "$own" | grep -m1 -E '^\[[^]]+\]')" == "[big-wm]" ]] \
+            || die "big-windowmaker: o [big-wm] não ficou como o primeiro repositório em $own"
+    fi
 }
 
 run_build() {
