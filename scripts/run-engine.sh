@@ -192,7 +192,25 @@ run_build() {
         /usr/share/manjaro-tools/pacman-multilib.conf
     bash "$here/preflight-local-repo.sh" "$local_repo" \
         /usr/share/manjaro-tools/pacman-multilib.conf
+    bigwm_trust_repo_key
     bigwm_engine_run_build "$@"
+}
+
+# O pacman que roda dentro do chroot da imagem mhwd usa o pacman.conf da
+# edição, que tem o [big-wm] assinado (SigLevel = Required). O basestrap copia
+# para os chroots o chaveiro do contêiner, que não conhecia a chave: "big-wm:
+# key ... is unknown" e make_image_mhwd falhava (r66, run 45827709755). O
+# big-wm-keyring do [bigwm-local] instala e popula a chave no contêiner antes
+# de qualquer chroot existir.
+BIGWM_REPO_KEY=2F36D64F633BBA80052F48934AF5FC2961C2E4AF
+bigwm_trust_repo_key() {
+    local keyring=()
+    mapfile -t keyring < <(find "$local_repo" -maxdepth 1 -name 'big-wm-keyring-*.pkg.tar.zst')
+    ((${#keyring[@]} == 1)) || die "big-windowmaker: esperado um big-wm-keyring em $local_repo, achei ${#keyring[@]}"
+    msg "big-windowmaker: chave do [big-wm] no chaveiro do contêiner (os chroots copiam este chaveiro)"
+    pacman -U --noconfirm --needed "${keyring[0]}"
+    pacman-key --list-keys "$BIGWM_REPO_KEY" >/dev/null \
+        || die "big-windowmaker: a chave $BIGWM_REPO_KEY não entrou no chaveiro do contêiner"
 }
 
 main "$@"
