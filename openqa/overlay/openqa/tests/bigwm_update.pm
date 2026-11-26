@@ -36,9 +36,19 @@ sub run {
     # sem atualizações nem programas deles no pamac).
     $result{repositorios} = as_root(
         "pacman-conf --repo-list >$log 2>&1; "
-          . 'for r in biglinux-priority community-stable community-extra biglinux-stable biglinux-extra; do '
+          . 'for r in big-wm biglinux-priority community-stable community-extra biglinux-stable biglinux-extra; do '
           . "grep -qx \"\$r\" $log || exit 1; done", 60);
+    # Repositório assinado [big-wm] (big-windowmaker/repo): o primeiro da lista,
+    # e a chave dele populada pelo Calamares (big-wm-keyring) com confiança.
+    $result{big_wm_primeiro} = as_root(
+        "test \"\$(pacman-conf --repo-list | head -n1)\" = big-wm", 60);
+    $result{chave_big_wm} = as_root(
+        "pacman-key --list-keys 2F36D64F633BBA80052F48934AF5FC2961C2E4AF >>$log 2>&1", 60);
     $result{sincronizar} = as_root("pacman -Syu --noconfirm >>$log 2>&1", 2400);
+    # O windowmaker vem do [big-wm], com a época (sem ela o do extra parecia
+    # mais novo e o pamac trocava o pacote).
+    $result{windowmaker_big_wm} = as_root(
+        "pacman -Q windowmaker | grep -q \" 1:\" && pacman -Sl big-wm | grep -q \"^big-wm windowmaker \"", 60);
     $result{instalar} = as_root("pacman -S --noconfirm xorg-xeyes >>$log 2>&1", 600);
     $result{remover} = as_root("pacman -Rns --noconfirm xorg-xeyes >>$log 2>&1", 300);
     # pacman -Qkk dos pacotes do Big WindowMaker. Alterações em
