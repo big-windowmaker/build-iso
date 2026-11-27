@@ -52,12 +52,15 @@ def atualizar(texto: str, tag: str, repo: str, tamanhos: dict[str, int], sums: s
     if not m:
         raise Erro(f"tag fora do formato <nome>_AAAA-MM-DD_kNNN-rN: {tag}")
     base = m["base"]
-    iso = base + ".iso"
     somas = {}
     for linha in sums.splitlines():
         partes = linha.split()
         if len(partes) == 2 and re.fullmatch(r"[0-9a-f]{64}", partes[0]):
             somas[partes[1].lstrip("*")] = partes[0]
+    # Desde 2026-11-27 o arquivo leva o -rNN da tag; as releases anteriores,
+    # não. O nome que vale é o que o SHA256SUMS registra.
+    nome = tag if tag + ".iso" in somas else base
+    iso = nome + ".iso"
     if iso not in somas:
         raise Erro(f"{iso} não está no SHA256SUMS")
     soma = somas[iso]
@@ -85,7 +88,9 @@ def atualizar(texto: str, tag: str, repo: str, tamanhos: dict[str, int], sums: s
     if not antiga:
         raise Erro("o README não tem a tag da versão anterior")
     tag_antiga, base_antiga = antiga[1], re.sub(r"-r\d+$", "", antiga[1])
-    secao = secao.replace(tag_antiga, tag).replace(base_antiga, base)
+    # Primeiro a tag (links e arquivos já com -rNN), depois o nome antigo dos
+    # arquivos, sem o número.
+    secao = secao.replace(tag_antiga, tag).replace(base_antiga + ".iso", iso)
     # As duas somas são trocadas cada uma no seu lugar, seja qual for o valor
     # antigo (já estiveram diferentes entre si).
     secao = _sub1(r"(SHA-256 da ISO:\n`)[0-9a-f]{64}(`)", lambda x: x[1] + soma + x[2], secao,
@@ -177,6 +182,18 @@ def self_test() -> None:
         except Erro:
             continue
         raise AssertionError(f"aceitou uma release inconsistente: {sorted(tam)}")
+    # Arquivos com o -rNN da tag (desde 2026-11-27): do README antigo para o
+    # novo formato e, de novo, do novo formato para a ISO seguinte.
+    anterior = novo
+    for t in ("big-windowmaker_TESTING_2026-12-03_k618-r71", "big-windowmaker_TESTING_2026-12-04_k618-r72"):
+        i = t + ".iso"
+        tam = {f"{i}.7z.001": 2097152000, f"{i}.7z.002": 1100000000, "SHA256SUMS": 900}
+        sm = f"{soma}  {i}\n{'11' * 32}  {i}.7z.001\n{'22' * 32}  {i}.7z.002\n"
+        anterior = atualizar(anterior, t, "big-windowmaker/build-iso", tam, sm)
+        for esperado in (f"releases/tag/{t}\"", f"| [`{i}.7z.001`](", f"/{t}/{i}.7z.002)",
+                         f"7z x {i}.7z.001", f".\\{i} -Algorithm", f"dd if={i} "):
+            assert esperado in anterior, (esperado, anterior)
+        assert "k618.iso" not in anterior and "r70.iso" not in anterior, anterior
     print("org-readme.py: self-test ok")
 
 
