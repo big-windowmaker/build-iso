@@ -397,6 +397,8 @@ artefato `readme-org-<tag>`. Para aplicar num clone de `big-windowmaker/.github`
 
 ```bash
 python3 scripts/org-readme.py --tag big-windowmaker_TESTING_2026-11-24_k618-r62 ../.github/profile/README.md
+# versão com nome: o mesmo --versao da publicação
+python3 scripts/org-readme.py --tag big-windowmaker_BETA1_2026-11-27_k618-r72 --versao "Beta 1" ../.github/profile/README.md
 ```
 
 ## Baixar a ISO de um run
