@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/big-windowmaker/build-iso/actions/workflows/build-iso.yml"><img src="https://github.com/big-windowmaker/build-iso/actions/workflows/build-iso.yml/badge.svg" alt="Build ISO"></a>
   <a href="https://github.com/big-windowmaker/build-iso/releases"><img src="https://img.shields.io/github/v/release/big-windowmaker/build-iso?include_prereleases&label=ISO" alt="Última ISO"></a>
-  <img src="https://img.shields.io/badge/fase-Alpha-8a2be2" alt="Fase Alpha">
+  <img src="https://img.shields.io/badge/fase-Beta%201-2d85c6" alt="Fase Beta 1">
   <img src="https://img.shields.io/badge/boot-BIOS%20%C2%B7%20UEFI-555" alt="BIOS e UEFI">
   <img src="https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-blue" alt="Licença GPL-3.0">
 </p>
@@ -35,7 +35,7 @@ Pipeline do GitHub Actions que gera a ISO live da edição **Big WindowMaker**
 sem modificá-lo, e a testa de verdade: boot BIOS e UEFI até a sessão live,
 instalação pelo Calamares e login no sistema instalado pelo wdm.
 
-> **Alpha.** A ISO é montada com um repositório local **não assinado**
+> **Beta.** A ISO é montada com um repositório local **não assinado**
 > (`[bigwm-local]`, os artefatos de CI dos outros repositórios), que só existe
 > no build, e é publicada como *pre-release*. O sistema instalado atualiza os
 > pacotes do Big WindowMaker pelo repositório **assinado**
@@ -553,7 +553,7 @@ derivam); ver `LICENSE`.
 BigLinux ISO engine and the `bigcommunity/wmaker` profile, from a local,
 unsigned repository assembled from the CI artifacts of the other
 repositories, then boots it in QEMU (BIOS and UEFI), installs it with
-Calamares and logs in. ISOs are published only as pre-releases (Alpha).
+Calamares and logs in. ISOs are published as pre-releases (Alpha builds, or a named version such as Beta 1).
 Download the three `.iso.7z` parts and `SHA256SUMS` from
 [Releases](https://github.com/big-windowmaker/build-iso/releases), check them,
 join them with `7z x …iso.7z.001` and try the ISO in a VM. Maintainers: Rafael Ruscher and
