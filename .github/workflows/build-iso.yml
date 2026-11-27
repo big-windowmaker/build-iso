@@ -50,8 +50,10 @@ on:
         type: boolean
         default: false
   schedule:
-    # Semanal (segunda-feira, 05:17 UTC): ISO com os valores padrão (testing).
-    - cron: "17 5 * * 1"
+    # Diária (05:17 UTC): ISO com os valores padrão (testing), sem publicar.
+    # Critério da Beta: smoke e openQA verdes 7 dias seguidos
+    # (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).
+    - cron: "17 5 * * *"
 
 permissions: {}
 
