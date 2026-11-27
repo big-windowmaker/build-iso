@@ -2,14 +2,15 @@
 """org-readme.py - atualiza a seção "Baixar a ISO" do README da organização.
 
 Uso:
-  org-readme.py --tag <tag> [--repo dono/repo] <profile/README.md>
+  org-readme.py --tag <tag> [--versao "Beta 1"] [--repo dono/repo] <profile/README.md>
   org-readme.py --self-test
 
 Lê da release publicada (gh release view/download) os nomes e tamanhos das
 partes .7z e o SHA256SUMS, e reescreve no README, no lugar, o que muda a cada
 ISO: links e tag, nome da ISO nos comandos, data, mês e kernel da versão
 atual, tamanho da ISO, número de partes, a tabela de partes e o SHA-256 da
-ISO (minúsculo e, no PowerShell, maiúsculo). Nada é digitado à mão: a soma
+ISO (minúsculo e, no PowerShell, maiúsculo). Sem --versao a versão se chama
+"Alpha de <mês>"; com ela, pelo nome dado ("Beta 1"). Nada é digitado à mão: a soma
 vem do SHA256SUMS da própria release. O resto do texto não é tocado.
 
 O README atual precisa ter uma versão anterior no mesmo formato (o script
@@ -19,6 +20,7 @@ trecho esperado não for encontrado, em vez de gravar um README pela metade.
 from __future__ import annotations
 
 import argparse
+import urllib.parse
 import json
 import re
 import subprocess
@@ -47,7 +49,13 @@ def _sub1(padrao: str, novo, texto: str, o_que: str, flags: int = 0) -> str:
     return texto
 
 
-def atualizar(texto: str, tag: str, repo: str, tamanhos: dict[str, int], sums: str) -> str:
+def _selo(texto: str) -> str:
+    """Texto de um selo do shields.io: espaço e acentos codificados, - dobrado."""
+    return urllib.parse.quote(texto.replace("-", "--"), safe="")
+
+
+def atualizar(texto: str, tag: str, repo: str, tamanhos: dict[str, int], sums: str,
+              versao: str = "") -> str:
     m = TAG_RE.match(tag)
     if not m:
         raise Erro(f"tag fora do formato <nome>_AAAA-MM-DD_kNNN-rN: {tag}")
@@ -101,16 +109,20 @@ def atualizar(texto: str, tag: str, repo: str, tamanhos: dict[str, int], sums: s
     data = f"{m['d']}/{m['m']}/{m['a']}"
     mes = MESES[int(m["m"]) - 1]
     kernel = f"{m['kmaj']}.{m['kmin']}"
-    secao = _sub1(r"(\*\*Versão atual:\*\* Big WindowMaker \*\*Alpha de )[^*]+(\*\* \()"
+    # "Alpha de novembro" (sem nome) ou "Beta 1"; o botão diz "Alpha de
+    # 26/11/2026" ou "Beta 1 de 27/11/2026". Os padrões aceitam os dois
+    # formatos, para passar de um para o outro.
+    rotulo = versao or f"Alpha de {mes}"
+    curto = versao or "Alpha"
+    secao = _sub1(r"(\*\*Versão atual:\*\* Big WindowMaker \*\*)[^*]+(\*\* \()"
                   r"\d{2}/\d{2}/\d{4}, kernel [0-9.]+\)",
-                  lambda x: f"{x[1]}{mes}{x[2]}{data}, kernel {kernel})", secao, "Versão atual")
-    secao = _sub1(r"Alpha%20de%20\d{2}%2F\d{2}%2F\d{4}", "Alpha%20de%20" + data.replace("/", "%2F"),
-                  secao, "botão Baixar")
-    secao = _sub1(r"Baixar a Alpha de \d{2}/\d{2}/\d{4}", "Baixar a Alpha de " + data, secao,
-                  "texto do botão Baixar")
-    topo = _sub1(r"ISO-Alpha%20de%20[^-\"]+-", f"ISO-Alpha%20de%20{mes.replace('ç', '%C3%A7')}-",
-                  topo, "selo do topo")
-    topo = _sub1(r'alt="ISO Alpha de [^"]+"', f'alt="ISO Alpha de {mes}"', topo, "selo do topo (alt)")
+                  lambda x: f"{x[1]}{rotulo}{x[2]}{data}, kernel {kernel})", secao, "Versão atual")
+    secao = _sub1(r"Baixar-[A-Za-z]+(?:%20\d+)?%20de%20\d{2}%2F\d{2}%2F\d{4}",
+                  "Baixar-" + _selo(f"{curto} de {data}"), secao, "botão Baixar")
+    secao = _sub1(r"Baixar a [A-Za-z]+(?: \d+)? de \d{2}/\d{2}/\d{4}", f"Baixar a {curto} de {data}",
+                  secao, "texto do botão Baixar")
+    topo = _sub1(r"badge/ISO-[^-\"]+-", f"badge/ISO-{_selo(rotulo)}-", topo, "selo do topo")
+    topo = _sub1(r'alt="ISO [^"]+"', f'alt="ISO {rotulo}"', topo, "selo do topo (alt)")
 
     total = sum(tamanhos[n] for n in pedacos)  # 7z -mx=0: a ISO mais ~200 bytes
     secao = _sub1(r"A ISO tem [0-9,]+ GiB \([0-9,]+ GB\)",
@@ -182,6 +194,20 @@ def self_test() -> None:
         except Erro:
             continue
         raise AssertionError(f"aceitou uma release inconsistente: {sorted(tam)}")
+    # Versão com nome: da Alpha para a Beta 1 e da Beta 1 para a Beta 2.
+    beta = novo
+    for t, v, dia in (("big-windowmaker_BETA1_2026-12-05_k618-r73", "Beta 1", "05"),
+                      ("big-windowmaker_BETA2_2026-12-12_k618-r80", "Beta 2", "12")):
+        i = t + ".iso"
+        tam = {f"{i}.7z.001": 2097152000, f"{i}.7z.002": 1100000000, "SHA256SUMS": 900}
+        sm = f"{soma}  {i}\n{'11' * 32}  {i}.7z.001\n{'22' * 32}  {i}.7z.002\n"
+        beta = atualizar(beta, t, "big-windowmaker/build-iso", tam, sm, versao=v)
+        enc = v.replace(" ", "%20")
+        for esperado in (f"**{v}** ({dia}/12/2026, kernel 6.18).", f"Baixar-{enc}%20de%20{dia}%2F12%2F2026",
+                         f"Baixar a {v} de {dia}/12/2026", f"badge/ISO-{enc}-", f'alt="ISO {v}"',
+                         f"releases/tag/{t}\"", f"dd if={i} "):
+            assert esperado in beta, (esperado, beta)
+        assert "Alpha" not in beta.split("## 🆕")[0], beta
     # Arquivos com o -rNN da tag (desde 2026-11-27): do README antigo para o
     # novo formato e, de novo, do novo formato para a ISO seguinte.
     anterior = novo
@@ -201,6 +227,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--tag")
     ap.add_argument("--repo", default="big-windowmaker/build-iso")
+    ap.add_argument("--versao", default="", help='nome da versão, por exemplo "Beta 1"')
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("readme", nargs="?", type=Path)
     a = ap.parse_args()
@@ -213,7 +240,9 @@ def main() -> int:
     tamanhos = {x["name"]: x["size"] for x in assets}
     sums = _gh("release", "download", a.tag, "-R", a.repo, "-p", "SHA256SUMS", "-O", "-")
     try:
-        novo = atualizar(a.readme.read_text(encoding="utf-8"), a.tag, a.repo, tamanhos, sums)
+        if a.versao and not re.fullmatch(r"[A-Z][a-z]+ \d+", a.versao):
+            raise Erro(f"versão inválida (ex.: Beta 1): {a.versao}")
+        novo = atualizar(a.readme.read_text(encoding="utf-8"), a.tag, a.repo, tamanhos, sums, a.versao)
     except Erro as e:
         print(f"org-readme.py: erro: {e}", file=sys.stderr)
         return 1

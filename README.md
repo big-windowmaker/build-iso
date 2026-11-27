@@ -384,6 +384,9 @@ Para publicar uma ISO já aprovada sem gerar outra:
 
 ```bash
 gh workflow run publish-release.yml -R big-windowmaker/build-iso -f run_id=<id do run>
+# versão com nome: título, notas, README da organização e o arquivo
+# (big-windowmaker_BETA1_<data>_k618-rNN.iso) dizem "Beta 1"
+gh workflow run publish-release.yml -R big-windowmaker/build-iso -f run_id=<id do run> -f versao="Beta 1"
 ```
 
 Depois de publicar, o mesmo workflow gera o trecho "Baixar a ISO" do README da
@@ -394,6 +397,8 @@ artefato `readme-org-<tag>`. Para aplicar num clone de `big-windowmaker/.github`
 
 ```bash
 python3 scripts/org-readme.py --tag big-windowmaker_TESTING_2026-11-24_k618-r62 ../.github/profile/README.md
+# versão com nome: o mesmo --versao da publicação
+python3 scripts/org-readme.py --tag big-windowmaker_BETA1_2026-11-27_k618-r72 --versao "Beta 1" ../.github/profile/README.md
 ```
 
 ## Baixar a ISO de um run

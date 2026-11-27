@@ -15,7 +15,12 @@
 # tem (HTTP 403). O commit do build continua registrado no .build-info, que
 # vai nas notas da release.
 #
+# O arquivo publicado se chama <tag>.iso (o build gera o nome sem o -rNN e,
+# numa versão com nome, com o ramo dos pacotes no lugar dela).
+#
 # Variáveis: GH_TOKEN (contents: write), GITHUB_REPOSITORY.
+#            VERSAO (opcional): nome da versão, por exemplo "Beta 1"; vai no
+#            título e nas notas. Sem ela, a release é uma Alpha.
 # Em caso de falha da API, a resposta completa fica em gh-api-debug.txt.
 set -euo pipefail
 
@@ -27,16 +32,19 @@ dir=$1 iso=$2 tag=$3 target=$4
 [[ "$tag" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || die "tag inválida: $tag"
 [[ "$target" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$ && "$target" != *..* ]] || die "branch inválido: $target"
 [[ -n "${GITHUB_REPOSITORY:-}" ]] || die "GITHUB_REPOSITORY não definido"
+versao=${VERSAO:-}
+[[ -z "$versao" || "$versao" =~ ^[A-Z][a-z]+\ [0-9]+$ ]] || die "VERSAO inválida (ex.: Beta 1): $versao"
 
 scripts=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "$dir"
 sha256sum --check --strict -- "$iso.sha256"
 
-# O nome publicado leva o número do build (o -rNN da tag): duas ISOs do mesmo
-# dia tinham o mesmo nome de arquivo, e quem baixou a anterior conferia o
-# SHA-256 da página errada (r70 e r71, 2026-11-26).
-if [[ "$tag" =~ -(r[0-9]+)$ && "$iso" != *"-${BASH_REMATCH[1]}.iso" ]]; then
-    novo="${iso%.iso}-${BASH_REMATCH[1]}.iso"
+# O nome publicado é o da tag: leva o número do build (-rNN), porque duas
+# ISOs do mesmo dia tinham o mesmo nome de arquivo e quem baixou a anterior
+# conferia o SHA-256 da página errada (r70 e r71, 2026-11-26), e numa versão
+# com nome leva o nome dela (big-windowmaker_BETA1_...).
+if [[ "$iso" != "$tag.iso" ]]; then
+    novo="$tag.iso"
     for f in "$iso" "$iso".*; do
         mv -- "$f" "$novo${f#"$iso"}"
     done
@@ -58,7 +66,11 @@ fi
 cat SHA256SUMS
 
 {
-    echo "**Big WindowMaker — Alpha (ISO de teste). Não use em produção.**"
+    if [[ -n "$versao" ]]; then
+        echo "**Big WindowMaker $versao.** Versão para testes públicos: instale num computador com backup e relate os problemas (menu Sessão > Relatar problema)."
+    else
+        echo "**Big WindowMaker — Alpha (ISO de teste). Não use em produção.**"
+    fi
     echo
     echo "Sessão padrão: Big WindowMaker — X11 (Window Maker). Sessão experimental: Big WindowMaker — Wayland (wlmaker)."
     echo
@@ -84,7 +96,7 @@ mapfile -t files < <(find . -maxdepth 1 -type f ! -name notes.md ! -name gh-api-
 publish() {
     # Rascunho primeiro: a criação não depende dos envios; publica no fim.
     gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$target" \
-        --draft --prerelease --title "Big WindowMaker Alpha — $iso" --notes-file notes.md
+        --draft --prerelease --title "Big WindowMaker ${versao:-Alpha} — $iso" --notes-file notes.md
     gh release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber -- "${files[@]}"
     gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
 }
