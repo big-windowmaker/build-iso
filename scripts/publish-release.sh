@@ -32,6 +32,19 @@ scripts=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "$dir"
 sha256sum --check --strict -- "$iso.sha256"
 
+# O nome publicado leva o número do build (o -rNN da tag): duas ISOs do mesmo
+# dia tinham o mesmo nome de arquivo, e quem baixou a anterior conferia o
+# SHA-256 da página errada (r70 e r71, 2026-11-26).
+if [[ "$tag" =~ -(r[0-9]+)$ && "$iso" != *"-${BASH_REMATCH[1]}.iso" ]]; then
+    novo="${iso%.iso}-${BASH_REMATCH[1]}.iso"
+    for f in "$iso" "$iso".*; do
+        mv -- "$f" "$novo${f#"$iso"}"
+    done
+    sed -i "s|  $iso\$|  $novo|" "$novo.sha256"
+    iso=$novo
+    sha256sum --check --strict -- "$iso.sha256"
+fi
+
 # SHA256SUMS cobre a ISO inteira (o que se confere depois de juntar as
 # partes) e os arquivos auxiliares.
 sha256sum -- "$iso" "$iso.pkgs" "$iso.bigwm-local.manifest" \
