@@ -1,4 +1,4 @@
-# Publica como pre-release (Alpha) a ISO de um run do build-iso.yml já
+# Publica como pre-release (Alpha, ou a versão com nome dada em "versao") a ISO de um run do build-iso.yml já
 # aprovado, sem refazer o pipeline. Antes de publicar confere pela API que,
 # naquele run, o build, os smoke tests e os testes de instalação (BIOS e
 # UEFI) passaram; só então baixa a ISO do artefato e chama
@@ -11,6 +11,14 @@ on:
       run_id:
         description: "ID do run do build-iso.yml cuja ISO será publicada"
         required: true
+        type: string
+      versao:
+        # Vazio: Alpha (pre-release com a data). Com nome ("Beta 1"): o nome
+        # vai no título, nas notas, no README da organização e no arquivo
+        # (big-windowmaker_BETA1_..., no lugar do ramo dos pacotes).
+        description: "Nome da versão (ex.: Beta 1); vazio para Alpha"
+        required: false
+        default: ""
         type: string
 
 permissions: {}
@@ -72,14 +80,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NUMBER: ${{ steps.run.outputs.number }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          VERSAO: ${{ inputs.versao }}
         run: |
           set -euo pipefail
           command -v 7z >/dev/null || { sudo apt-get update; sudo apt-get install --yes p7zip-full; }
           iso=$(find /mnt/release -maxdepth 1 -name '*.iso' -printf '%f\n')
           [[ "$iso" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]] || { echo "::error::ISO não encontrada"; exit 1; }
-          url=$(bash scripts/publish-release.sh /mnt/release "$iso" "${iso%.iso}-r$NUMBER" "$DEFAULT_BRANCH")
+          base=${iso%.iso}
+          if [[ -n "$VERSAO" ]]; then
+            [[ "$VERSAO" =~ ^[A-Z][a-z]+\ [0-9]+$ ]] || { echo "::error::versão inválida (ex.: Beta 1): $VERSAO"; exit 1; }
+            # big-windowmaker_TESTING_2026-11-27_k618 -> big-windowmaker_BETA1_2026-11-27_k618
+            nome=${VERSAO^^}
+            novo=$(sed -E "s/_(TESTING|STABLE)_/_${nome// /}_/" <<<"$base")
+            [[ "$novo" != "$base" ]] || { echo "::error::sem _TESTING_/_STABLE_ no nome: $iso"; exit 1; }
+            base=$novo
+          fi
+          tag=$base-r$NUMBER
+          url=$(bash scripts/publish-release.sh /mnt/release "$iso" "$tag" "$DEFAULT_BRANCH")
           echo "Pre-release publicada: $url" >> "$GITHUB_STEP_SUMMARY"
-          echo "tag=${iso%.iso}-r$NUMBER" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       # O README da organização (big-windowmaker/.github) não aceita push daqui
       # (o GITHUB_TOKEN só escreve neste repositório). O trecho de download sai
@@ -89,11 +108,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.publicar.outputs.tag }}
+          VERSAO: ${{ inputs.versao }}
         run: |
           set -euo pipefail
           sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/org
           git clone --quiet --depth 1 https://github.com/big-windowmaker/.github.git /mnt/org
-          python3 -I scripts/org-readme.py --tag "$TAG" --repo "$GITHUB_REPOSITORY" /mnt/org/profile/README.md
+          python3 -I scripts/org-readme.py --tag "$TAG" --versao "$VERSAO" --repo "$GITHUB_REPOSITORY" /mnt/org/profile/README.md
           {
             echo "### README da organização (profile/README.md)"
             echo

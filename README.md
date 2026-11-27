@@ -384,6 +384,9 @@ Para publicar uma ISO já aprovada sem gerar outra:
 
 ```bash
 gh workflow run publish-release.yml -R big-windowmaker/build-iso -f run_id=<id do run>
+# versão com nome: título, notas, README da organização e o arquivo
+# (big-windowmaker_BETA1_<data>_k618-rNN.iso) dizem "Beta 1"
+gh workflow run publish-release.yml -R big-windowmaker/build-iso -f run_id=<id do run> -f versao="Beta 1"
 ```
 
 Depois de publicar, o mesmo workflow gera o trecho "Baixar a ISO" do README da
