@@ -120,7 +120,8 @@ flowchart LR
 ## O que o workflow faz
 
 `.github/workflows/build-iso.yml` — gatilhos: `workflow_dispatch` e agendamento
-semanal (segunda-feira, 05:17 UTC, ISO *testing* com os valores padrão).
+diário (05:17 UTC, ISO *testing* com os valores padrão, sem publicar): o
+histórico mostra os dias seguidos com smoke e openQA verdes, critério da Beta.
 
 | Job | Privilégios | O que faz |
 |---|---|---|
