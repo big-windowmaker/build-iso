@@ -1,59 +1,59 @@
 # Gera a ISO de TESTE do Big WindowMaker (edição bigcommunity/wmaker).
 #
-#   lint (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    sem privilégios: valida as entradas, confere links simbólicos
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           da edição, roda os testes pytest do iso-profiles, bash -n e
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           shellcheck nos scripts deste repositório (e o self-test do
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           org-readme.py).
+#   lint        sem privilégios: valida as entradas, confere links simbólicos
+#               da edição, roda os testes pytest do iso-profiles, bash -n e
+#               shellcheck nos scripts deste repositório (e o self-test do
+#               org-readme.py).
 #   local-repo  baixa os pacotes dos artefatos de CI de big-windowmaker/big-wm
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           e big-windowmaker/packages e monta o repositório local
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           [bigwm-local] (NÃO assinado: somente ISOs de teste).
-#   build (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).   motor de ISO da BigLinux (biglinux/iso-profiles fixado por SHA)
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           no mesmo contêiner privilegiado que a BigLinux usa (fixado por
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           digest), com [bigwm-local] injetado logo antes do buildiso.
+#               e big-windowmaker/packages e monta o repositório local
+#               [bigwm-local] (NÃO assinado: somente ISOs de teste).
+#   build       motor de ISO da BigLinux (biglinux/iso-profiles fixado por SHA)
+#               no mesmo contêiner privilegiado que a BigLinux usa (fixado por
+#               digest), com [bigwm-local] injetado logo antes do buildiso.
 #   smoke-test  boot da ISO em QEMU (BIOS e UEFI/OVMF) até a sessão live e
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           prova de que a sessão Window Maker é utilizável.
+#               prova de que a sessão Window Maker é utilizável.
 #   install-test instalação pelo Calamares (BIOS e UEFI) com o harness openQA
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           da BigLinux fixado por SHA + overlay (openqa/), reinício pelo
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           disco instalado, login no LightDM e sessão big-wm.
-#   release (.github/docs/PLANEJAMENTO-ESTRATEGICO.md). só por workflow_dispatch com publish=true, no environment
-# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).           iso-release: SHA256SUMS + GitHub Release como pre-release.
+#               da BigLinux fixado por SHA + overlay (openqa/), reinício pelo
+#               disco instalado, login no LightDM e sessão big-wm.
+#   release     só por workflow_dispatch com publish=true, no environment
+#               iso-release: SHA256SUMS + GitHub Release como pre-release.
 #
 # Detalhes, limites e configuração do repositório: README.md.
 name: Build ISO
 
 on:
   workflow_dispatch:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).inputs:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  branch:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    # testing: community-testing/stable/extra e biglinux-testing/stable/extra,
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    # no build e no pacman.conf do sistema instalado (os mesmos repositórios,
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    # na mesma ordem, do big-comm/build-package). stable: sem os *-testing.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    description: "Branch BigCommunity/BigLinux dos pacotes"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    type: choice
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    default: testing
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    options: [testing, stable]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  kernel:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    description: "Kernel (seletor do motor da BigLinux)"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    type: choice
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    default: lts
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    options: [lts, oldlts, latest, big]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  profiles_ref:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    description: "Ref (branch, tag ou SHA) de big-windowmaker/iso-profiles"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    type: string
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    default: main
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  require_livecd_patch:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    description: "Reprovar o smoke test se o biglinux-livecd não tiver o patch do Window Maker"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    type: boolean
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    default: true
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  publish:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    description: "Publicar como pre-release (environment iso-release)"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    type: boolean
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    default: false
+    inputs:
+      branch:
+        # testing: community-testing/stable/extra e biglinux-testing/stable/extra,
+        # no build e no pacman.conf do sistema instalado (os mesmos repositórios,
+        # na mesma ordem, do big-comm/build-package). stable: sem os *-testing.
+        description: "Branch BigCommunity/BigLinux dos pacotes"
+        type: choice
+        default: testing
+        options: [testing, stable]
+      kernel:
+        description: "Kernel (seletor do motor da BigLinux)"
+        type: choice
+        default: lts
+        options: [lts, oldlts, latest, big]
+      profiles_ref:
+        description: "Ref (branch, tag ou SHA) de big-windowmaker/iso-profiles"
+        type: string
+        default: main
+      require_livecd_patch:
+        description: "Reprovar o smoke test se o biglinux-livecd não tiver o patch do Window Maker"
+        type: boolean
+        default: true
+      publish:
+        description: "Publicar como pre-release (environment iso-release)"
+        type: boolean
+        default: false
   schedule:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).# Diária (05:17 UTC): ISO com os valores padrão (testing), sem publicar.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).# Critério da Beta: smoke e openQA verdes 7 dias seguidos
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).# (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).- cron: "17 5 * * *"
+    # Diária (05:17 UTC): ISO com os valores padrão (testing), sem publicar.
+    # Critério da Beta: smoke e openQA verdes 7 dias seguidos
+    # (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).
+    - cron: "17 5 * * *"
 
 permissions: {}
 
@@ -90,36 +90,36 @@ env:
   # sucesso (ver scripts/fetch-package-artifacts.sh). big-windowmaker/packages
   # publica um artefato por diretório de pacote: packages-<diretório>.
   PACKAGE_SOURCES: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/big-wm    ci.yml     big-wm-packages
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/tabbed-dock ci.yml   tabbed-dock-packages
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/big-wm-display-resolution ci.yml display-resolution-packages
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/big-keyboard ci.yml  big-keyboard-packages
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-big-wm-keyring
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-windowmaker
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-wlmaker
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-big-dockapps
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-biglinux-livecd
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-gtk-nocsd
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-qtstep-kvantum
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-onestepback-gtk-theme
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-retrothemes-firefox
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-wdm
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-wmake-zones
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-wmpulsemixer
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-thunar-git
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).# dependência do thunar-git (>= 4.21.8; o extra tem a 4.20), por isso
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).# fora de EXPECTED_PACKAGES, que o lint confere nas listas do perfil
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-windowmaker/packages  build.yml  packages-libxfce4ui
+    big-windowmaker/big-wm    ci.yml     big-wm-packages
+    big-windowmaker/tabbed-dock ci.yml   tabbed-dock-packages
+    big-windowmaker/big-wm-display-resolution ci.yml display-resolution-packages
+    big-windowmaker/big-keyboard ci.yml  big-keyboard-packages
+    big-windowmaker/packages  build.yml  packages-big-wm-keyring
+    big-windowmaker/packages  build.yml  packages-windowmaker
+    big-windowmaker/packages  build.yml  packages-wlmaker
+    big-windowmaker/packages  build.yml  packages-big-dockapps
+    big-windowmaker/packages  build.yml  packages-biglinux-livecd
+    big-windowmaker/packages  build.yml  packages-gtk-nocsd
+    big-windowmaker/packages  build.yml  packages-qtstep-kvantum
+    big-windowmaker/packages  build.yml  packages-onestepback-gtk-theme
+    big-windowmaker/packages  build.yml  packages-retrothemes-firefox
+    big-windowmaker/packages  build.yml  packages-wdm
+    big-windowmaker/packages  build.yml  packages-wmake-zones
+    big-windowmaker/packages  build.yml  packages-wmpulsemixer
+    big-windowmaker/packages  build.yml  packages-thunar-git
+    # dependência do thunar-git (>= 4.21.8; o extra tem a 4.20), por isso
+    # fora de EXPECTED_PACKAGES, que o lint confere nas listas do perfil
+    big-windowmaker/packages  build.yml  packages-libxfce4ui
   # Pacotes que precisam sair do repositório local e estar na ISO.
   EXPECTED_PACKAGES: >-
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-wm-session big-wm-wayland big-wm-themes big-wm-welcome big-wm-zoom windowmaker wlmaker
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).wmcpuload wmbattery wmusic wmudmount wmshutdown wmmoonclock wmnet
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).wmclock wmmemload wmsystemtray biglinux-livecd gtk-nocsd
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).wmcube pclock wmwifi wmapmload minidock minicontrol mountapp
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).qtstep-kvantum onestepback-gtk-theme retrothemes-firefox
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-wm-tabbed-dock big-wm-display-resolution big-wm-lockscreen big-wm-name grub-theme-big-wm plymouth-theme-big-wm wdm wmake-zones wmpulsemixer wmeyes
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).wmcalc wmcalclock wmcliphist wmclockmon wmcpufreq wmfsm wmglobe wmgtemp wmmon wmpager wmsun wmtime wmtop wmtz wmweather
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).big-keyboard thunar-git big-wm-keyring
+    big-wm-session big-wm-wayland big-wm-themes big-wm-welcome big-wm-zoom windowmaker wlmaker
+    wmcpuload wmbattery wmusic wmudmount wmshutdown wmmoonclock wmnet
+    wmclock wmmemload wmsystemtray biglinux-livecd gtk-nocsd
+    wmcube pclock wmwifi wmapmload minidock minicontrol mountapp
+    qtstep-kvantum onestepback-gtk-theme retrothemes-firefox
+    big-wm-tabbed-dock big-wm-display-resolution big-wm-lockscreen big-wm-name grub-theme-big-wm plymouth-theme-big-wm wdm wmake-zones wmpulsemixer wmeyes
+    wmcalc wmcalclock wmcliphist wmclockmon wmcpufreq wmfsm wmglobe wmgtemp wmmon wmpager wmsun wmtime wmtop wmtz wmweather
+    big-keyboard thunar-git big-wm-keyring
   # Imagem usada só para rodar repo-add sem rede (manjarolinux/base, a mesma
   # de big-windowmaker/packages). O Dependabot não atualiza digests usados
   # em `run:`; atualizar à mão.
@@ -127,592 +127,592 @@ env:
 
 jobs:
   lint:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).name: Lint (perfil e scripts)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).runs-on: ubuntu-24.04
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).timeout-minutes: 15
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).permissions:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  contents: read
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).outputs:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  branch: ${{ steps.inputs.outputs.branch }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  kernel: ${{ steps.inputs.outputs.kernel }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  require_livecd_patch: ${{ steps.inputs.outputs.require_livecd_patch }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  profiles_sha: ${{ steps.profiles.outputs.sha }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).steps:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Validar entradas
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    id: inputs
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      IN_BRANCH: ${{ inputs.branch }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      IN_KERNEL: ${{ inputs.kernel }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      IN_PROFILES_REF: ${{ inputs.profiles_ref }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      IN_REQUIRE_PATCH: ${{ inputs.require_livecd_patch }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # No agendamento as entradas chegam vazias: valores padrão.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      branch=${IN_BRANCH:-testing}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      kernel=${IN_KERNEL:-lts}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ref=${IN_PROFILES_REF:-main}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      require=${IN_REQUIRE_PATCH:-true}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$branch" =~ ^(testing|stable)$ ]] || { echo "branch inválido: $branch" >&2; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$kernel" =~ ^(lts|oldlts|latest|big)$ ]] || { echo "kernel inválido: $kernel" >&2; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$ && "$ref" != *..* ]] \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        || { echo "profiles_ref inválido: $ref" >&2; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$require" =~ ^(true|false)$ ]] || { echo "require_livecd_patch inválido" >&2; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$ENGINE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "ENGINE_SHA inválido" >&2; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      {
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "branch=$branch"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "kernel=$kernel"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "profiles_ref=$ref"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "require_livecd_patch=$require"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      } >> "$GITHUB_OUTPUT"
+    name: Lint (perfil e scripts)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      branch: ${{ steps.inputs.outputs.branch }}
+      kernel: ${{ steps.inputs.outputs.kernel }}
+      require_livecd_patch: ${{ steps.inputs.outputs.require_livecd_patch }}
+      profiles_sha: ${{ steps.profiles.outputs.sha }}
+    steps:
+      - name: Validar entradas
+        id: inputs
+        env:
+          IN_BRANCH: ${{ inputs.branch }}
+          IN_KERNEL: ${{ inputs.kernel }}
+          IN_PROFILES_REF: ${{ inputs.profiles_ref }}
+          IN_REQUIRE_PATCH: ${{ inputs.require_livecd_patch }}
+        run: |
+          set -euo pipefail
+          # No agendamento as entradas chegam vazias: valores padrão.
+          branch=${IN_BRANCH:-testing}
+          kernel=${IN_KERNEL:-lts}
+          ref=${IN_PROFILES_REF:-main}
+          require=${IN_REQUIRE_PATCH:-true}
+          [[ "$branch" =~ ^(testing|stable)$ ]] || { echo "branch inválido: $branch" >&2; exit 1; }
+          [[ "$kernel" =~ ^(lts|oldlts|latest|big)$ ]] || { echo "kernel inválido: $kernel" >&2; exit 1; }
+          [[ "$ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$ && "$ref" != *..* ]] \
+            || { echo "profiles_ref inválido: $ref" >&2; exit 1; }
+          [[ "$require" =~ ^(true|false)$ ]] || { echo "require_livecd_patch inválido" >&2; exit 1; }
+          [[ "$ENGINE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "ENGINE_SHA inválido" >&2; exit 1; }
+          {
+            echo "branch=$branch"
+            echo "kernel=$kernel"
+            echo "profiles_ref=$ref"
+            echo "require_livecd_patch=$require"
+          } >> "$GITHUB_OUTPUT"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout deste repositório
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: ci
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+      - name: Checkout deste repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ci
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout dos perfis
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      repository: ${{ env.PROFILES_REPO }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ref: ${{ steps.inputs.outputs.profiles_ref }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: profiles
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+      - name: Checkout dos perfis
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.PROFILES_REPO }}
+          ref: ${{ steps.inputs.outputs.profiles_ref }}
+          path: profiles
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Fixar o commit dos perfis
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    id: profiles
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sha=$(git -C profiles rev-parse HEAD)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      echo "sha=$sha" >> "$GITHUB_OUTPUT"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      echo "Perfis: $PROFILES_REPO@$sha" >> "$GITHUB_STEP_SUMMARY"
+      - name: Fixar o commit dos perfis
+        id: profiles
+        run: |
+          set -euo pipefail
+          sha=$(git -C profiles rev-parse HEAD)
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Perfis: $PROFILES_REPO@$sha" >> "$GITHUB_STEP_SUMMARY"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Scripts deste repositório (bash -n e shellcheck)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      for script in ci/scripts/*.sh; do
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        bash -n "$script"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      done
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      shellcheck --version
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      shellcheck ci/scripts/*.sh
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      python3 -I ci/scripts/org-readme.py --self-test
+      - name: Scripts deste repositório (bash -n e shellcheck)
+        run: |
+          set -euo pipefail
+          for script in ci/scripts/*.sh; do
+            bash -n "$script"
+          done
+          shellcheck --version
+          shellcheck ci/scripts/*.sh
+          python3 -I ci/scripts/org-readme.py --self-test
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Links simbólicos da edição
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: bash ci/scripts/check-symlinks.sh profiles "$DISTRONAME/$EDITION"
+      - name: Links simbólicos da edição
+        run: bash ci/scripts/check-symlinks.sh profiles "$DISTRONAME/$EDITION"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Pacotes esperados listados na edição
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # Root e Live costumam ser links para shared/; o grep segue os links.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      edition="profiles/$DISTRONAME/$EDITION"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      lists=("$edition/Packages-Root" "$edition/Packages-Desktop" "$edition/Packages-Live")
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      missing=0
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      for name in $EXPECTED_PACKAGES; do
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        # Aceita marcadores do manjaro-tools (">extra nome") e restrições de versão.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        if ! grep -Eqh "^(>[a-z0-9_]+[[:space:]]+)?${name}([<>=]|[[:space:]]|$)" "${lists[@]}"; then
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          echo "::error file=$edition/Packages-Desktop::$name não está em Packages-Root/Desktop/Live"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          missing=1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        fi
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      done
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      exit "$missing"
+      - name: Pacotes esperados listados na edição
+        run: |
+          set -euo pipefail
+          # Root e Live costumam ser links para shared/; o grep segue os links.
+          edition="profiles/$DISTRONAME/$EDITION"
+          lists=("$edition/Packages-Root" "$edition/Packages-Desktop" "$edition/Packages-Live")
+          missing=0
+          for name in $EXPECTED_PACKAGES; do
+            # Aceita marcadores do manjaro-tools (">extra nome") e restrições de versão.
+            if ! grep -Eqh "^(>[a-z0-9_]+[[:space:]]+)?${name}([<>=]|[[:space:]]|$)" "${lists[@]}"; then
+              echo "::error file=$edition/Packages-Desktop::$name não está em Packages-Root/Desktop/Live"
+              missing=1
+            fi
+          done
+          exit "$missing"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Testes pytest do iso-profiles
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # grub-script-check (grub-common) e msgfmt (gettext) são usados pelos testes.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      if ! command -v grub-script-check >/dev/null || ! command -v msgfmt >/dev/null; then
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        sudo apt-get update
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        sudo apt-get install --yes --no-install-recommends grub-common gettext
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      fi
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      python3 -m venv "$RUNNER_TEMP/venv"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      "$RUNNER_TEMP/venv/bin/python" -m pip install --disable-pip-version-check --quiet 'pytest==9.1.1'
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      cd profiles
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      "$RUNNER_TEMP/venv/bin/python" -m pytest -q -ra tests/
+      - name: Testes pytest do iso-profiles
+        run: |
+          set -euo pipefail
+          # grub-script-check (grub-common) e msgfmt (gettext) são usados pelos testes.
+          if ! command -v grub-script-check >/dev/null || ! command -v msgfmt >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends grub-common gettext
+          fi
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --disable-pip-version-check --quiet 'pytest==9.1.1'
+          cd profiles
+          "$RUNNER_TEMP/venv/bin/python" -m pytest -q -ra tests/
 
   local-repo:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).name: Repositório local [bigwm-local]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).runs-on: ubuntu-24.04
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).timeout-minutes: 20
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).permissions:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  contents: read
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  actions: read
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).steps:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout deste repositório
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+    name: Repositório local [bigwm-local]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout deste repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Baixar os artefatos de pacotes (runs de push em main)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # GITHUB_TOKEN vale só para este repositório; para ler artefatos de
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # outros repositórios pode ser necessário um token com
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # "Actions: read" neles (ver README, "Limites").
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      GH_TOKEN: ${{ secrets.ARTIFACTS_READ_TOKEN || github.token }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: bash scripts/fetch-package-artifacts.sh "$RUNNER_TEMP/artifacts"
+      - name: Baixar os artefatos de pacotes (runs de push em main)
+        env:
+          # GITHUB_TOKEN vale só para este repositório; para ler artefatos de
+          # outros repositórios pode ser necessário um token com
+          # "Actions: read" neles (ver README, "Limites").
+          GH_TOKEN: ${{ secrets.ARTIFACTS_READ_TOKEN || github.token }}
+        run: bash scripts/fetch-package-artifacts.sh "$RUNNER_TEMP/artifacts"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Montar o repositório com repo-add (contêiner sem rede)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      mkdir -p "$RUNNER_TEMP/bigwm-local"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      docker run --rm --network none \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        --user "$(id -u):$(id -g)" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        -e EXPECTED_PACKAGES \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        -v "$GITHUB_WORKSPACE/scripts:/scripts:ro" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        -v "$RUNNER_TEMP/artifacts:/in:ro" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        -v "$RUNNER_TEMP/bigwm-local:/out" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        "$MANJARO_BASE_IMAGE" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        bash /scripts/make-local-repo.sh /in /out
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      cp "$RUNNER_TEMP/artifacts/sources.tsv" "$RUNNER_TEMP/bigwm-local/bigwm-local.sources.tsv"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      {
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "### Repositório local [bigwm-local] (NÃO assinado, somente teste)"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo '```'
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        grep -v '^#' "$RUNNER_TEMP/bigwm-local/bigwm-local.manifest" | cut -d' ' -f1-3,6
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo '```'
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      } >> "$GITHUB_STEP_SUMMARY"
+      - name: Montar o repositório com repo-add (contêiner sem rede)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bigwm-local"
+          docker run --rm --network none \
+            --user "$(id -u):$(id -g)" \
+            -e EXPECTED_PACKAGES \
+            -v "$GITHUB_WORKSPACE/scripts:/scripts:ro" \
+            -v "$RUNNER_TEMP/artifacts:/in:ro" \
+            -v "$RUNNER_TEMP/bigwm-local:/out" \
+            "$MANJARO_BASE_IMAGE" \
+            bash /scripts/make-local-repo.sh /in /out
+          cp "$RUNNER_TEMP/artifacts/sources.tsv" "$RUNNER_TEMP/bigwm-local/bigwm-local.sources.tsv"
+          {
+            echo "### Repositório local [bigwm-local] (NÃO assinado, somente teste)"
+            echo
+            echo '```'
+            grep -v '^#' "$RUNNER_TEMP/bigwm-local/bigwm-local.manifest" | cut -d' ' -f1-3,6
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Publicar o repositório como artefato
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: bigwm-local-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: ${{ runner.temp }}/bigwm-local/
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      if-no-files-found: error
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      retention-days: 3
+      - name: Publicar o repositório como artefato
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bigwm-local-${{ github.run_id }}
+          path: ${{ runner.temp }}/bigwm-local/
+          if-no-files-found: error
+          retention-days: 3
 
   resolve:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).name: Resolução de pacotes (simulação pacman)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).needs: [lint, local-repo]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).runs-on: ubuntu-24.04
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).timeout-minutes: 20
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).permissions:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  contents: read
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).steps:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout deste repositório
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: ci
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+    name: Resolução de pacotes (simulação pacman)
+    needs: [lint, local-repo]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout deste repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ci
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout dos perfis (mesmo commit do lint)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      repository: ${{ env.PROFILES_REPO }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ref: ${{ needs.lint.outputs.profiles_sha }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: profiles
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+      - name: Checkout dos perfis (mesmo commit do lint)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.PROFILES_REPO }}
+          ref: ${{ needs.lint.outputs.profiles_sha }}
+          path: profiles
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Baixar o [bigwm-local]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: bigwm-local-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: ${{ runner.temp }}/bigwm-local
+      - name: Baixar o [bigwm-local]
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bigwm-local-${{ github.run_id }}
+          path: ${{ runner.temp }}/bigwm-local
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Simular a instalação das listas da edição
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      BRANCH: ${{ needs.lint.outputs.branch }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      edition="$GITHUB_WORKSPACE/profiles/$DISTRONAME/$EDITION"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # cp -L: Packages-Root/Live são links para shared/ no checkout.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      mkdir -p "$RUNNER_TEMP/edition"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      cp -L "$edition"/Packages-{Root,Desktop,Live} "$RUNNER_TEMP/edition/"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      docker run --rm \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        -e BIGLINUX_REPO_HOST -e COMMUNITY_REPO_HOST -e MANJARO_BRANCH \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        -v "$GITHUB_WORKSPACE/ci/scripts:/scripts:ro" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        -v "$RUNNER_TEMP/edition:/edition:ro" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        -v "$RUNNER_TEMP/bigwm-local:/srv/bigwm-local:ro" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        "$MANJARO_BASE_IMAGE" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        bash /scripts/resolve-edition.sh /edition /srv/bigwm-local "$BRANCH" \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        | tee "$RUNNER_TEMP/resolve.txt"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      { echo "### Resolução de pacotes ($BRANCH)"; echo '```'; cat "$RUNNER_TEMP/resolve.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Simular a instalação das listas da edição
+        env:
+          BRANCH: ${{ needs.lint.outputs.branch }}
+        run: |
+          set -euo pipefail
+          edition="$GITHUB_WORKSPACE/profiles/$DISTRONAME/$EDITION"
+          # cp -L: Packages-Root/Live são links para shared/ no checkout.
+          mkdir -p "$RUNNER_TEMP/edition"
+          cp -L "$edition"/Packages-{Root,Desktop,Live} "$RUNNER_TEMP/edition/"
+          docker run --rm \
+            -e BIGLINUX_REPO_HOST -e COMMUNITY_REPO_HOST -e MANJARO_BRANCH \
+            -v "$GITHUB_WORKSPACE/ci/scripts:/scripts:ro" \
+            -v "$RUNNER_TEMP/edition:/edition:ro" \
+            -v "$RUNNER_TEMP/bigwm-local:/srv/bigwm-local:ro" \
+            "$MANJARO_BASE_IMAGE" \
+            bash /scripts/resolve-edition.sh /edition /srv/bigwm-local "$BRANCH" \
+            | tee "$RUNNER_TEMP/resolve.txt"
+          { echo "### Resolução de pacotes ($BRANCH)"; echo '```'; cat "$RUNNER_TEMP/resolve.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
   build:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).name: ISO ${{ needs.lint.outputs.branch }} ${{ needs.lint.outputs.kernel }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).needs: [lint, local-repo, resolve]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).runs-on: ubuntu-24.04
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).timeout-minutes: 300
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).permissions:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  contents: read
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).outputs:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  iso: ${{ steps.output.outputs.iso }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).container:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # A mesma imagem e o mesmo digest do workflow Build ISO de
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # biglinux/iso-profiles (no ENGINE_SHA). Atualizar junto com o motor.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  image: xivastudio/biglinux_build_package@sha256:317d3f13ea00967f325fc12dd9926a6a8035802def37c99e5dedcebbf647c9c2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # Privilegiado: buildiso usa loop devices, mount e chroot.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  options: --privileged
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  volumes:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    # Disco grande do runner em /mnt: os chroots e o cache da ISO não
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    # cabem no disco raiz.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    - /mnt/var_lib_manjaro_tools_buildiso:/var/lib/manjaro-tools/buildiso
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    - /mnt/var_cache_manjaro_tools_iso:/var/cache/manjaro-tools/iso
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).steps:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout deste repositório
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: ci
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+    name: ISO ${{ needs.lint.outputs.branch }} ${{ needs.lint.outputs.kernel }}
+    needs: [lint, local-repo, resolve]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    permissions:
+      contents: read
+    outputs:
+      iso: ${{ steps.output.outputs.iso }}
+    container:
+      # A mesma imagem e o mesmo digest do workflow Build ISO de
+      # biglinux/iso-profiles (no ENGINE_SHA). Atualizar junto com o motor.
+      image: xivastudio/biglinux_build_package@sha256:317d3f13ea00967f325fc12dd9926a6a8035802def37c99e5dedcebbf647c9c2
+      # Privilegiado: buildiso usa loop devices, mount e chroot.
+      options: --privileged
+      volumes:
+        # Disco grande do runner em /mnt: os chroots e o cache da ISO não
+        # cabem no disco raiz.
+        - /mnt/var_lib_manjaro_tools_buildiso:/var/lib/manjaro-tools/buildiso
+        - /mnt/var_cache_manjaro_tools_iso:/var/cache/manjaro-tools/iso
+    steps:
+      - name: Checkout deste repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ci
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout do motor (biglinux/iso-profiles fixado)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      repository: ${{ env.ENGINE_REPO }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ref: ${{ env.ENGINE_SHA }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: engine
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+      - name: Checkout do motor (biglinux/iso-profiles fixado)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.ENGINE_REPO }}
+          ref: ${{ env.ENGINE_SHA }}
+          path: engine
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout dos perfis (commit validado no lint)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      repository: ${{ env.PROFILES_REPO }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ref: ${{ needs.lint.outputs.profiles_sha }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: profiles
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+      - name: Checkout dos perfis (commit validado no lint)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.PROFILES_REPO }}
+          ref: ${{ needs.lint.outputs.profiles_sha }}
+          path: profiles
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Conferir os commits
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      PROFILES_SHA: ${{ needs.lint.outputs.profiles_sha }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      git config --global --add safe.directory "$GITHUB_WORKSPACE/engine"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      git config --global --add safe.directory "$GITHUB_WORKSPACE/profiles"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$(git -C engine rev-parse HEAD)" == "$ENGINE_SHA" ]]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$(git -C profiles rev-parse HEAD)" == "$PROFILES_SHA" ]]
+      - name: Conferir os commits
+        env:
+          PROFILES_SHA: ${{ needs.lint.outputs.profiles_sha }}
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/engine"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/profiles"
+          [[ "$(git -C engine rev-parse HEAD)" == "$ENGINE_SHA" ]]
+          [[ "$(git -C profiles rev-parse HEAD)" == "$PROFILES_SHA" ]]
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Baixar o repositório local
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: bigwm-local-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: /srv/bigwm-local
+      - name: Baixar o repositório local
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bigwm-local-${{ github.run_id }}
+          path: /srv/bigwm-local
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # Uma queda passageira de um repositório (repo.communitybig.org parou de
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # responder no meio do pacman -Sy do rootfs: "Operation too slow") derrubava
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # o build inteiro. Antes de começar, espera cada base de dados responder,
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # com novas tentativas; se continuar fora, falha aqui, em minutos.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  #
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # Com o pacman, não com o curl: o motor baixa tudo pelo pacman, e a
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # Cloudflare do repo.communitybig.org desafia (403) o curl dos runners
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # mas deixa o pacman passar. Banco local vazio e só -Sy: nada é
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  # instalado; as assinaturas o motor confere (SigLevel = PackageRequired).
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Conferir os repositórios do build
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      BIG_BRANCH: ${{ needs.lint.outputs.branch }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      section() { # nome, servidor
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        printf '\n[%s]\nServer = https://%s/$repo/$arch\n' "$1" "$2"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      conf=$(mktemp)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      dbpath=$(mktemp -d)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # Mesma ordem do motor (append_build_repos).
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      {
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        printf '[options]\nArchitecture = auto\nSigLevel = Never\n'
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        section biglinux-priority "$BIGLINUX_REPO_HOST"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        [[ "$BIG_BRANCH" == testing ]] && section community-testing "$COMMUNITY_REPO_HOST"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        section community-stable "$COMMUNITY_REPO_HOST"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        section community-extra "$COMMUNITY_REPO_HOST"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        [[ "$BIG_BRANCH" == testing ]] && section biglinux-testing "$BIGLINUX_REPO_HOST"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        section biglinux-stable "$BIGLINUX_REPO_HOST"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        section biglinux-extra "$BIGLINUX_REPO_HOST"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      } >"$conf"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      grep '^\[' "$conf" | grep -v options
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      for attempt in 1 2 3 4 5 6 7 8 9 10; do
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        if pacman --config "$conf" --dbpath "$dbpath" --logfile "$dbpath/pacman.log" -Sy --noconfirm; then
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          ls -l "$dbpath/sync"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          exit 0
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        fi
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "::warning::repositórios não responderam ao pacman (tentativa $attempt de 10)"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        sleep $((attempt * 15))
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      done
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      echo "::error::repositório fora do ar (pacman -Sy falhou 10 vezes)"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      exit 1
+      # Uma queda passageira de um repositório (repo.communitybig.org parou de
+      # responder no meio do pacman -Sy do rootfs: "Operation too slow") derrubava
+      # o build inteiro. Antes de começar, espera cada base de dados responder,
+      # com novas tentativas; se continuar fora, falha aqui, em minutos.
+      #
+      # Com o pacman, não com o curl: o motor baixa tudo pelo pacman, e a
+      # Cloudflare do repo.communitybig.org desafia (403) o curl dos runners
+      # mas deixa o pacman passar. Banco local vazio e só -Sy: nada é
+      # instalado; as assinaturas o motor confere (SigLevel = PackageRequired).
+      - name: Conferir os repositórios do build
+        env:
+          BIG_BRANCH: ${{ needs.lint.outputs.branch }}
+        run: |
+          set -euo pipefail
+          section() { # nome, servidor
+            printf '\n[%s]\nServer = https://%s/$repo/$arch\n' "$1" "$2"
+          }
+          conf=$(mktemp)
+          dbpath=$(mktemp -d)
+          # Mesma ordem do motor (append_build_repos).
+          {
+            printf '[options]\nArchitecture = auto\nSigLevel = Never\n'
+            section biglinux-priority "$BIGLINUX_REPO_HOST"
+            [[ "$BIG_BRANCH" == testing ]] && section community-testing "$COMMUNITY_REPO_HOST"
+            section community-stable "$COMMUNITY_REPO_HOST"
+            section community-extra "$COMMUNITY_REPO_HOST"
+            [[ "$BIG_BRANCH" == testing ]] && section biglinux-testing "$BIGLINUX_REPO_HOST"
+            section biglinux-stable "$BIGLINUX_REPO_HOST"
+            section biglinux-extra "$BIGLINUX_REPO_HOST"
+          } >"$conf"
+          grep '^\[' "$conf" | grep -v options
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if pacman --config "$conf" --dbpath "$dbpath" --logfile "$dbpath/pacman.log" -Sy --noconfirm; then
+              ls -l "$dbpath/sync"
+              exit 0
+            fi
+            echo "::warning::repositórios não responderam ao pacman (tentativa $attempt de 10)"
+            sleep $((attempt * 15))
+          done
+          echo "::error::repositório fora do ar (pacman -Sy falhou 10 vezes)"
+          exit 1
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Construir a ISO (motor da BigLinux + [bigwm-local])
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      KERNEL: ${{ needs.lint.outputs.kernel }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      BIG_BRANCH: ${{ needs.lint.outputs.branch }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$KERNEL" =~ ^(lts|oldlts|latest|big)$ && "$BIG_BRANCH" =~ ^(testing|stable)$ ]]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      export ENGINE_DIR="$GITHUB_WORKSPACE/engine"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      export PROFILES_ROOT="$GITHUB_WORKSPACE/profiles"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      export WORK_PATH="$GITHUB_WORKSPACE/output"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      export BIGWM_LOCAL_REPO=/srv/bigwm-local
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      export MANJARO_BRANCH
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      export BIGCOMMUNITY_BRANCH="$BIG_BRANCH"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      export BIGLINUX_BRANCH="$BIG_BRANCH"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      export KERNEL EDITION DISTRONAME
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      bash ci/scripts/run-engine.sh
+      - name: Construir a ISO (motor da BigLinux + [bigwm-local])
+        env:
+          KERNEL: ${{ needs.lint.outputs.kernel }}
+          BIG_BRANCH: ${{ needs.lint.outputs.branch }}
+        run: |
+          set -euo pipefail
+          [[ "$KERNEL" =~ ^(lts|oldlts|latest|big)$ && "$BIG_BRANCH" =~ ^(testing|stable)$ ]]
+          export ENGINE_DIR="$GITHUB_WORKSPACE/engine"
+          export PROFILES_ROOT="$GITHUB_WORKSPACE/profiles"
+          export WORK_PATH="$GITHUB_WORKSPACE/output"
+          export BIGWM_LOCAL_REPO=/srv/bigwm-local
+          export MANJARO_BRANCH
+          export BIGCOMMUNITY_BRANCH="$BIG_BRANCH"
+          export BIGLINUX_BRANCH="$BIG_BRANCH"
+          export KERNEL EDITION DISTRONAME
+          bash ci/scripts/run-engine.sh
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checksums, lista de pacotes e conferência do repositório local
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    id: output
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      PROFILES_SHA: ${{ needs.lint.outputs.profiles_sha }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      cd output
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      mapfile -t isos < <(find . -maxdepth 1 -type f -name '*.iso' -printf '%f\n')
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ((${#isos[@]} == 1)) || { echo "esperada 1 ISO, encontradas ${#isos[@]}" >&2; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      iso=${isos[0]}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$iso" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ -s "$iso.pkgs" ]] || { echo "lista de pacotes $iso.pkgs ausente" >&2; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # Os pacotes de Packages-Live (biglinux-livecd) ficam no livefs.sfs,
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # fora do .pkgs: o script os procura na camada live da ISO.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      bash ../ci/scripts/check-iso-packages.sh "$iso.pkgs" /srv/bigwm-local/bigwm-local.manifest \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        "$iso" "../profiles/$DISTRONAME/$EDITION/Packages-Live"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      cp /srv/bigwm-local/bigwm-local.manifest "$iso.bigwm-local.manifest"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      cp /srv/bigwm-local/bigwm-local.sources.tsv "$iso.bigwm-local.sources.tsv"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      {
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "iso=$iso"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "engine=$ENGINE_REPO@$ENGINE_SHA"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "profiles=$PROFILES_REPO@$PROFILES_SHA"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "workflow_run=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "build_iso_commit=$GITHUB_SHA"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      } > "$iso.build-info"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sha256sum "$iso" > "$iso.sha256"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      cat "$iso.sha256" "$iso.build-info"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      echo "iso=$iso" >> "$GITHUB_OUTPUT"
+      - name: Checksums, lista de pacotes e conferência do repositório local
+        id: output
+        env:
+          PROFILES_SHA: ${{ needs.lint.outputs.profiles_sha }}
+        run: |
+          set -euo pipefail
+          cd output
+          mapfile -t isos < <(find . -maxdepth 1 -type f -name '*.iso' -printf '%f\n')
+          ((${#isos[@]} == 1)) || { echo "esperada 1 ISO, encontradas ${#isos[@]}" >&2; exit 1; }
+          iso=${isos[0]}
+          [[ "$iso" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]]
+          [[ -s "$iso.pkgs" ]] || { echo "lista de pacotes $iso.pkgs ausente" >&2; exit 1; }
+          # Os pacotes de Packages-Live (biglinux-livecd) ficam no livefs.sfs,
+          # fora do .pkgs: o script os procura na camada live da ISO.
+          bash ../ci/scripts/check-iso-packages.sh "$iso.pkgs" /srv/bigwm-local/bigwm-local.manifest \
+            "$iso" "../profiles/$DISTRONAME/$EDITION/Packages-Live"
+          cp /srv/bigwm-local/bigwm-local.manifest "$iso.bigwm-local.manifest"
+          cp /srv/bigwm-local/bigwm-local.sources.tsv "$iso.bigwm-local.sources.tsv"
+          {
+            echo "iso=$iso"
+            echo "engine=$ENGINE_REPO@$ENGINE_SHA"
+            echo "profiles=$PROFILES_REPO@$PROFILES_SHA"
+            echo "workflow_run=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "build_iso_commit=$GITHUB_SHA"
+          } > "$iso.build-info"
+          sha256sum "$iso" > "$iso.sha256"
+          cat "$iso.sha256" "$iso.build-info"
+          echo "iso=$iso" >> "$GITHUB_OUTPUT"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Publicar a ISO como artefato (candidata, não publicada)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: iso-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: output/
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      compression-level: 0
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      if-no-files-found: error
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      retention-days: 3
+      - name: Publicar a ISO como artefato (candidata, não publicada)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: iso-${{ github.run_id }}
+          path: output/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 3
 
   smoke-test:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).name: Smoke test (${{ matrix.firmware }})
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).needs: [lint, build]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).runs-on: ubuntu-24.04
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).timeout-minutes: 60
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).permissions:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  contents: read
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).strategy:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  fail-fast: false
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  matrix:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    firmware: [bios, uefi]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).steps:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout deste repositório
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+    name: Smoke test (${{ matrix.firmware }})
+    needs: [lint, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        firmware: [bios, uefi]
+    steps:
+      - name: Checkout deste repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Preparar QEMU, OVMF e KVM
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo apt-get update
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo apt-get install --yes --no-install-recommends qemu-system-x86 ovmf
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # Acesso ao /dev/kvm para o usuário do runner (receita da documentação do GitHub).
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        | sudo tee /etc/udev/rules.d/99-kvm4all.rules
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo udevadm control --reload-rules
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo udevadm trigger --name-match=kvm
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # O trigger é assíncrono: espera o udev aplicar a permissão.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo udevadm settle --timeout=30
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      for _ in $(seq 1 20); do
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        [[ -r /dev/kvm && -w /dev/kvm ]] && break
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        sleep 0.5
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      done
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ -r /dev/kvm && -w /dev/kvm ]] || { ls -l /dev/kvm; echo "::error::/dev/kvm sem permissão para o runner"; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/smoke
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      for pair in /usr/share/OVMF/OVMF_CODE_4M.fd:/usr/share/OVMF/OVMF_VARS_4M.fd \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).                  /usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd; do
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        if [[ -f "${pair%%:*}" && -f "${pair##*:}" ]]; then
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          echo "OVMF_CODE=${pair%%:*}" >> "$GITHUB_ENV"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          echo "OVMF_VARS=${pair##*:}" >> "$GITHUB_ENV"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          break
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        fi
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      done
+      - name: Preparar QEMU, OVMF e KVM
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends qemu-system-x86 ovmf
+          # Acesso ao /dev/kvm para o usuário do runner (receita da documentação do GitHub).
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          # O trigger é assíncrono: espera o udev aplicar a permissão.
+          sudo udevadm settle --timeout=30
+          for _ in $(seq 1 20); do
+            [[ -r /dev/kvm && -w /dev/kvm ]] && break
+            sleep 0.5
+          done
+          [[ -r /dev/kvm && -w /dev/kvm ]] || { ls -l /dev/kvm; echo "::error::/dev/kvm sem permissão para o runner"; exit 1; }
+          sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/smoke
+          for pair in /usr/share/OVMF/OVMF_CODE_4M.fd:/usr/share/OVMF/OVMF_VARS_4M.fd \
+                      /usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd; do
+            if [[ -f "${pair%%:*}" && -f "${pair##*:}" ]]; then
+              echo "OVMF_CODE=${pair%%:*}" >> "$GITHUB_ENV"
+              echo "OVMF_VARS=${pair##*:}" >> "$GITHUB_ENV"
+              break
+            fi
+          done
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Baixar a ISO candidata
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: iso-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: /mnt/smoke/iso
+      - name: Baixar a ISO candidata
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: iso-${{ github.run_id }}
+          path: /mnt/smoke/iso
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Boot em QEMU até a sessão live
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ISO: ${{ needs.build.outputs.iso }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      FIRMWARE: ${{ matrix.firmware }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      REQUIRE_PATCH: ${{ needs.lint.outputs.require_livecd_patch }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$ISO" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      (cd /mnt/smoke/iso && sha256sum --check --strict -- "$ISO.sha256")
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      args=(--iso "/mnt/smoke/iso/$ISO" --firmware "$FIRMWARE"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).            --out "/mnt/smoke/out-$FIRMWARE" --require-livecd-patch "$REQUIRE_PATCH")
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      if [[ "$FIRMWARE" == uefi ]]; then
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        args+=(--ovmf-code "$OVMF_CODE" --ovmf-vars "$OVMF_VARS")
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      fi
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      bash scripts/smoke-test.sh "${args[@]}"
+      - name: Boot em QEMU até a sessão live
+        env:
+          ISO: ${{ needs.build.outputs.iso }}
+          FIRMWARE: ${{ matrix.firmware }}
+          REQUIRE_PATCH: ${{ needs.lint.outputs.require_livecd_patch }}
+        run: |
+          set -euo pipefail
+          [[ "$ISO" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]]
+          (cd /mnt/smoke/iso && sha256sum --check --strict -- "$ISO.sha256")
+          args=(--iso "/mnt/smoke/iso/$ISO" --firmware "$FIRMWARE"
+                --out "/mnt/smoke/out-$FIRMWARE" --require-livecd-patch "$REQUIRE_PATCH")
+          if [[ "$FIRMWARE" == uefi ]]; then
+            args+=(--ovmf-code "$OVMF_CODE" --ovmf-vars "$OVMF_VARS")
+          fi
+          bash scripts/smoke-test.sh "${args[@]}"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Guardar logs e capturas de tela
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    if: always()
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: smoke-${{ matrix.firmware }}-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: /mnt/smoke/out-${{ matrix.firmware }}/
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      if-no-files-found: warn
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      retention-days: 7
+      - name: Guardar logs e capturas de tela
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: smoke-${{ matrix.firmware }}-${{ github.run_id }}
+          path: /mnt/smoke/out-${{ matrix.firmware }}/
+          if-no-files-found: warn
+          retention-days: 7
 
   install-test:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).# Instalação real pelo Calamares numa VM e boot do disco instalado, com o
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).# harness openQA da BigLinux (biglinux/iso-profiles fixado em
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).# openqa/upstream.env) + patches e overlay de openqa/. Ver openqa/README.md.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).name: Instalação (${{ matrix.firmware }})
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).needs: [lint, build]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).runs-on: ubuntu-24.04
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).timeout-minutes: 150
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).permissions:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  contents: read
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  packages: read
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).strategy:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  fail-fast: false
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  matrix:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    firmware: [bios, uefi]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).steps:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout deste repositório
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: ci
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+    # Instalação real pelo Calamares numa VM e boot do disco instalado, com o
+    # harness openQA da BigLinux (biglinux/iso-profiles fixado em
+    # openqa/upstream.env) + patches e overlay de openqa/. Ver openqa/README.md.
+    name: Instalação (${{ matrix.firmware }})
+    needs: [lint, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        firmware: [bios, uefi]
+    steps:
+      - name: Checkout deste repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ci
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Ler a fixação do harness
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    id: harness
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # shellcheck disable=SC1091
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      . ci/openqa/upstream.env
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$UPSTREAM_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$UPSTREAM_SHA" =~ ^[0-9a-f]{40}$ ]]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$OPENQA_IMAGE" =~ ^ghcr\.io/big-windowmaker/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ]]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      {
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "repo=$UPSTREAM_REPO"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "sha=$UPSTREAM_SHA"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        echo "image=$OPENQA_IMAGE"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      } >> "$GITHUB_OUTPUT"
+      - name: Ler a fixação do harness
+        id: harness
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          . ci/openqa/upstream.env
+          [[ "$UPSTREAM_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          [[ "$UPSTREAM_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$OPENQA_IMAGE" =~ ^ghcr\.io/big-windowmaker/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ]]
+          {
+            echo "repo=$UPSTREAM_REPO"
+            echo "sha=$UPSTREAM_SHA"
+            echo "image=$OPENQA_IMAGE"
+          } >> "$GITHUB_OUTPUT"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout do harness openQA (fixado)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      repository: ${{ steps.harness.outputs.repo }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ref: ${{ steps.harness.outputs.sha }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: openqa-upstream
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+      - name: Checkout do harness openQA (fixado)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ steps.harness.outputs.repo }}
+          ref: ${{ steps.harness.outputs.sha }}
+          path: openqa-upstream
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Preparar KVM, OVMF, disco e a imagem do isotovideo
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      OPENQA_IMAGE: ${{ steps.harness.outputs.image }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      GH_TOKEN: ${{ github.token }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo apt-get update
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # ruby: o run-plan.sh da BigLinux lê o plano YAML com ele.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo apt-get install --yes --no-install-recommends ovmf ruby
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        | sudo tee /etc/udev/rules.d/99-kvm4all.rules
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo udevadm control --reload-rules
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo udevadm trigger --name-match=kvm
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # O trigger é assíncrono: espera o udev aplicar a permissão.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo udevadm settle --timeout=30
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      for _ in $(seq 1 20); do
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        [[ -r /dev/kvm && -w /dev/kvm ]] && break
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        sleep 0.5
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      done
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ -r /dev/kvm && -w /dev/kvm ]] || { ls -l /dev/kvm; echo "::error::/dev/kvm sem permissão para o runner"; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      # Disco do convidado (qcow2 esparso de 30 GiB) e ISO no /mnt.
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/install
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      for pair in /usr/share/OVMF/OVMF_CODE_4M.fd:/usr/share/OVMF/OVMF_VARS_4M.fd \
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).                  /usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd; do
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        if [[ -f "${pair%%:*}" && -f "${pair##*:}" ]]; then
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          echo "OVMF_CODE=${pair%%:*}" >> "$GITHUB_ENV"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          echo "OVMF_VARS=${pair##*:}" >> "$GITHUB_ENV"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).          break
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        fi
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      done
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      command -v ruby >/dev/null || { echo "::error::ruby não instalado"; exit 1; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      docker pull --quiet "$OPENQA_IMAGE"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      df -h / /mnt
+      - name: Preparar KVM, OVMF, disco e a imagem do isotovideo
+        env:
+          OPENQA_IMAGE: ${{ steps.harness.outputs.image }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          # ruby: o run-plan.sh da BigLinux lê o plano YAML com ele.
+          sudo apt-get install --yes --no-install-recommends ovmf ruby
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          # O trigger é assíncrono: espera o udev aplicar a permissão.
+          sudo udevadm settle --timeout=30
+          for _ in $(seq 1 20); do
+            [[ -r /dev/kvm && -w /dev/kvm ]] && break
+            sleep 0.5
+          done
+          [[ -r /dev/kvm && -w /dev/kvm ]] || { ls -l /dev/kvm; echo "::error::/dev/kvm sem permissão para o runner"; exit 1; }
+          # Disco do convidado (qcow2 esparso de 30 GiB) e ISO no /mnt.
+          sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/install
+          for pair in /usr/share/OVMF/OVMF_CODE_4M.fd:/usr/share/OVMF/OVMF_VARS_4M.fd \
+                      /usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd; do
+            if [[ -f "${pair%%:*}" && -f "${pair##*:}" ]]; then
+              echo "OVMF_CODE=${pair%%:*}" >> "$GITHUB_ENV"
+              echo "OVMF_VARS=${pair##*:}" >> "$GITHUB_ENV"
+              break
+            fi
+          done
+          command -v ruby >/dev/null || { echo "::error::ruby não instalado"; exit 1; }
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker pull --quiet "$OPENQA_IMAGE"
+          df -h / /mnt
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Baixar a ISO candidata
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: iso-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: /mnt/install/iso
+      - name: Baixar a ISO candidata
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: iso-${{ github.run_id }}
+          path: /mnt/install/iso
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Instalar pelo Calamares e iniciar o sistema instalado
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ISO: ${{ needs.build.outputs.iso }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      FIRMWARE: ${{ matrix.firmware }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      INSTALL_TEST_BUILD: ${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      [[ "$ISO" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      (cd /mnt/install/iso && sha256sum --check --strict -- "$ISO.sha256")
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      INSTALL_TEST_ISO_SHA256=$(cut -d' ' -f1 "/mnt/install/iso/$ISO.sha256")
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      export INSTALL_TEST_ISO_SHA256
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      args=(--iso "/mnt/install/iso/$ISO" --plan "$FIRMWARE"
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).            --out "/mnt/install/out-$FIRMWARE" --upstream openqa-upstream
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).            --timeout 7200)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      if [[ "$FIRMWARE" == uefi ]]; then
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).        args+=(--ovmf-code "$OVMF_CODE" --ovmf-vars "$OVMF_VARS")
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      fi
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      bash ci/scripts/install-test.sh "${args[@]}"
+      - name: Instalar pelo Calamares e iniciar o sistema instalado
+        env:
+          ISO: ${{ needs.build.outputs.iso }}
+          FIRMWARE: ${{ matrix.firmware }}
+          INSTALL_TEST_BUILD: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$ISO" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.iso$ ]]
+          (cd /mnt/install/iso && sha256sum --check --strict -- "$ISO.sha256")
+          INSTALL_TEST_ISO_SHA256=$(cut -d' ' -f1 "/mnt/install/iso/$ISO.sha256")
+          export INSTALL_TEST_ISO_SHA256
+          args=(--iso "/mnt/install/iso/$ISO" --plan "$FIRMWARE"
+                --out "/mnt/install/out-$FIRMWARE" --upstream openqa-upstream
+                --timeout 7200)
+          if [[ "$FIRMWARE" == uefi ]]; then
+            args+=(--ovmf-code "$OVMF_CODE" --ovmf-vars "$OVMF_VARS")
+          fi
+          bash ci/scripts/install-test.sh "${args[@]}"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Guardar resultados, logs, capturas e vídeo
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    if: always()
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: install-${{ matrix.firmware }}-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: /mnt/install/out-${{ matrix.firmware }}/artifacts/
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      if-no-files-found: warn
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      retention-days: 7
+      - name: Guardar resultados, logs, capturas e vídeo
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: install-${{ matrix.firmware }}-${{ github.run_id }}
+          path: /mnt/install/out-${{ matrix.firmware }}/artifacts/
+          if-no-files-found: warn
+          retention-days: 7
 
   release:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).name: Publicar pre-release
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).needs: [lint, build, smoke-test, install-test]
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).if: github.event_name == 'workflow_dispatch' && inputs.publish
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).runs-on: ubuntu-24.04
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).timeout-minutes: 45
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).environment: iso-release
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).permissions:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  contents: write
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).steps:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Preparar o diretório
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/release
+    name: Publicar pre-release
+    needs: [lint, build, smoke-test, install-test]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: iso-release
+    permissions:
+      contents: write
+    steps:
+      - name: Preparar o diretório
+        run: sudo install -d -o "$(id -u)" -g "$(id -g)" /mnt/release
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Baixar a ISO aprovada nos testes
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: iso-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: /mnt/release
+      - name: Baixar a ISO aprovada nos testes
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: iso-${{ github.run_id }}
+          path: /mnt/release
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Checkout deste repositório
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: ci
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      persist-credentials: false
+      - name: Checkout deste repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: ci
+          persist-credentials: false
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Publicar (rascunho, envio dos arquivos e publicação)
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    env:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      GH_TOKEN: ${{ github.token }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      ISO: ${{ needs.build.outputs.iso }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    run: |
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      set -euo pipefail
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      command -v 7z >/dev/null || { sudo apt-get update; sudo apt-get install --yes p7zip-full; }
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      url=$(bash ci/scripts/publish-release.sh /mnt/release "$ISO" "${ISO%.iso}-r${GITHUB_RUN_NUMBER}" "$DEFAULT_BRANCH")
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      echo "Pre-release publicada: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publicar (rascunho, envio dos arquivos e publicação)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISO: ${{ needs.build.outputs.iso }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          command -v 7z >/dev/null || { sudo apt-get update; sudo apt-get install --yes p7zip-full; }
+          url=$(bash ci/scripts/publish-release.sh /mnt/release "$ISO" "${ISO%.iso}-r${GITHUB_RUN_NUMBER}" "$DEFAULT_BRANCH")
+          echo "Pre-release publicada: $url" >> "$GITHUB_STEP_SUMMARY"
 
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).  - name: Guardar a resposta da API em caso de falha
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    if: failure()
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).    with:
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      name: publish-debug-${{ github.run_id }}
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      path: /mnt/release/gh-api-debug.txt
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      if-no-files-found: ignore
- (.github/docs/PLANEJAMENTO-ESTRATEGICO.md).      retention-days: 7
+      - name: Guardar a resposta da API em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: publish-debug-${{ github.run_id }}
+          path: /mnt/release/gh-api-debug.txt
+          if-no-files-found: ignore
+          retention-days: 7
